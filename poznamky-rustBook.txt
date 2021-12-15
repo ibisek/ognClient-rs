@@ -1,0 +1,22 @@
+
+http://wiki.glidernet.org/wiki:ogn-flavoured-aprs
+
+OGNC35002>OGNTRK,qAS,Kohoutov:/191509h4910.56N/01633.47E'000/000/A=001089 !W05! id07C35002 +000fpm +0.0rot FL010.89 11.0dB +6.6kHz gps6x9
+
+OGNC35002>OGNTRK,qAS,Sobesice:/194624h4910.55N/01633.46E'000/000/A=001129 !W49! id07C35002 +000fpm +0.0rot FL011.29 5.5dB +6.7kHz gps6x
+
+FLRDD02AE>OGFLR,qAS,AIRSQ04:/203151h4812.72N/01137.10EX091/076/A=002130 !W22! id0EDD02AE -355fpm -1.1rot 3.0dB 2e +3.5kHz gps2x4
+
+ICA4B43D0>OGFLR,qAS,Brunnen:/202242h4654.10N/00837.09EX339/122/A=002428 !W45! id0D4B43D0 +238fpm +0.1rot 9.2dB -0.5kHz gps2x3 s7.03 h03 rDDAE09 +6.9dBm
+
+ICA3CD061>OGFLR,qAS,AIRS97489:/093124h5436.79N/00701.66E^106/301/A=008226 !W24! id253CD061 -633fpm -1.0rot 4.8dB 3e -10.1kHz gps1x
+
+
+^([A-Z]{3})(.{6}).+?\/([0-9]{6})h(.+)([NS]).(.+?)(.+?)([EW])(.{1})(\d{3})\/(\d{3})\/A=([0-9]+).+?id(.{2})(.{6}).+?([+-].+)fpm.([+-].+)rot.FL([.0-9]+)
+
+
+Ruby client:
+    https://github.com/svoop/ogn_client-ruby/blob/main/lib/ogn_client/aprs.rb
+
+staticke regexy:
+    https://github.com/rust-lang/regex/blob/master/PERFORMANCE.md
