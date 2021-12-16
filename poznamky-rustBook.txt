@@ -20,3 +20,19 @@ Ruby client:
 
 staticke regexy:
     https://github.com/rust-lang/regex/blob/master/PERFORMANCE.md
+
+
+--
+
+Not yet decoded beacons:
+    PilotAware:
+        PAW050198>APRS,qAS,PWASHDEV:/192249h5213.04N\00145.54W^000/001/A=000239 !W05! id23050198 +000fpm +0.0rot 20.0dB 0e -6.0kHz gps1x1
+    SafeSky:
+        SKY345D4B>OGNSKY,qAS,SafeSky:/192248h4431.04N/00601.21E'133/000/A=003097 !W85! id20345D4B +000fpm gps7x8
+    some-kind-of-"icao"-units?
+        C-GPZT>OGNEMO,qAS,CZBA3:/192219h4326.60N/07951.15W'310/010/A=000600 !W83! id21C06EE2 +054fpm +0.0rot 18.0dB 0e 0.0kHz gps3x5
+    some others and unknowns:
+        RNDA5D3C1>APRS,TCPIP*,qAC,GLIDERN4:/192219h4636.29N/01131.96Ez000/002/A=001654 !W08! id00A5D3C1 -079fpm +0.0rot FL012.24 gps7x11
+
+--
+
