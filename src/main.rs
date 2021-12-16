@@ -1,25 +1,22 @@
-// user ibisek pass -1 vers ognlogbook 0.1 filter r/49.3678/16.1144/200
-
-use chrono::prelude::*;
+#[warn(non_snake_case)]
 
 use std::io::{Result};
+use std::process;
 // use std::String;
 // use std::char;
-use std::process;
 use std::str;
-use std::{thread, time};
 use regex::Regex;
 use lazy_static::lazy_static;
+use chrono::prelude::*;
 
 mod configuration;
 use configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
-use configuration::{HANDSHAKE_TEMPLATE, HANSHAKE_FILTER_TEMPLATE};
 
 mod dataStructures;
 use dataStructures::{AircraftBeacon, AddressType, AircraftType};
 
-mod ibiStream;
-use ibiStream::IbiStream;
+mod aprsServerConnection;
+use aprsServerConnection::AprsServerConnection;
 
 fn rx_time_to_utc_ts(rx_time: &str) -> u64 {
     let hour = rx_time[0..2].parse::<u32>().unwrap();
@@ -60,6 +57,15 @@ fn parse_beacon_line(line: &str) -> Option<Result<AircraftBeacon>> {
     let angular_speed: f64 = caps.get(15).unwrap().as_str().parse().unwrap();
     // let flight_level: f64 = caps.get(16).unwrap().as_str().parse().unwrap();     // [flight level ~ hundrets of ft]
 
+    // let re = Regex::new(AIRCRAFT_REGEX_ALT).unwrap();
+    // let flight_level: i32 = match re.captures(line) {
+    //     Some(caps) => {
+    //         let fl: f64 = caps.get(1).unwrap().as_str().parse().unwrap();
+    //         (fl * 100.0 * 0.3048).round() as i32  // [FL]->[m]
+    //     },
+    //     None => 0,
+    // };
+
     let ts = rx_time_to_utc_ts(rx_time);   // convert rx_time to UTC ts
     
     // convert latitude to number:
@@ -83,15 +89,6 @@ fn parse_beacon_line(line: &str) -> Option<Result<AircraftBeacon>> {
     // convert altitude in FL to meters:
     let altitude = (altitude * 0.3048).round() as i32;
     
-    // let re = Regex::new(AIRCRAFT_REGEX_ALT).unwrap();
-    // let flight_level: i32 = match re.captures(line) {
-    //     Some(caps) => {
-    //         let fl: f64 = caps.get(1).unwrap().as_str().parse().unwrap();
-    //         (fl * 100.0 * 0.3048).round() as i32  // [FL]->[m]
-    //     },
-    //     None => 0,
-    // };
-        
     let beacon = AircraftBeacon::new(ts, prefix, addr2, address_type, lat, lon, altitude, course, speed, vertical_speed, angular_speed, stealth, do_not_track, aircraft_type);
     Some(beacon)
 }
@@ -102,28 +99,21 @@ fn main() -> std::io::Result<()> {
     // parse_beacon_line(&line);
     // process::exit(1);
 
-    // let user = "ibisek";
-    // let lat = 49.1234;
-    // let lon = 16.4567;
-    // let range = 100;
-    // let filter = format!(HANSHAKE_FILTER_TEMPLATE, lat, lon, range);
-    // println!("f: {}", filter);
-    // let h = format!(String::from(HANDSHAKE_TEMPLATE, user, filter));
-    // println!("h: {}", h);
-    // process::exit(1);
-
-    // let stream = TcpStream::connect(SERVER_ADDR).unwrap();
-    // stream.set_nonblocking(true).expect("set_nonblocking call failed");
-    // let mut ibi_stream = IbiStream::new(stream)?;
-    let mut ibi_stream = IbiStream::new(SERVER_ADDR)?;
-    ibi_stream.connect();
-
+    let username = "blume";
+    let lat = 49.1234;
+    let lon = 16.4567;
+    let range = 999999;
+    
+    let mut server = AprsServerConnection::new(SERVER_ADDR, username)?;
+    server.set_aprs_filter(lat, lon, range);
+    server.connect();
+    
     println!("Entering the loop..");
     let supported_beacons: Vec<&str> = vec!["OGN", "FLR", "ICA"];
     let mut i = 0;
     // while i <= 666 {
     loop {
-        let line: String = match ibi_stream.read() {
+        let line: String = match server.read() {
             Some(line) => line,
             None => continue,
         };
@@ -132,7 +122,7 @@ fn main() -> std::io::Result<()> {
             let prefix = &line[0..3];
             if supported_beacons.contains(&prefix) {  
                 i += 1;
-                // println!("[{:06}] LINE1: {}", i, line); 
+                println!("[{:06}] LINE1: {}", i, line); 
                 let beacon: AircraftBeacon = match parse_beacon_line(&line) {
                     Some(res) => res.unwrap(),
                     None => continue,
@@ -141,10 +131,10 @@ fn main() -> std::io::Result<()> {
                 println!("beacon: {}", beacon.to_json_str());
 
             // } else {
-            //     println!("[---] LINE: {}", line); 
+            //     println!("[---] {}", line); 
             }
         }
     }
     
-    Ok(())
-} // the stream is closed here
+    // Ok(())
+}
