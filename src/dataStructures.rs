@@ -38,7 +38,7 @@ impl AircraftBeacon {
         // let serialized = serde_json::to_string(self).unwrap();
         let js = json!({
             "ts": self.ts,
-            // "prefix": self.prefix,
+            "prefix": self.prefix,
             "addr": self.addr,
             "addr_type": self.addr_type.value(),
             "lat": format!("{:.5}", self.lat),
