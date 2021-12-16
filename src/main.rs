@@ -1,7 +1,7 @@
 #[warn(non_snake_case)]
 
 use std::io::{Result};
-use std::process;
+// use std::process;
 // use std::String;
 // use std::char;
 use std::str;
@@ -15,8 +15,8 @@ use configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
 mod dataStructures;
 use dataStructures::{AircraftBeacon, AddressType, AircraftType};
 
-mod aprsServerConnection;
-use aprsServerConnection::AprsServerConnection;
+mod aprs_server_connection;
+use aprs_server_connection::AprsServerConnection;
 
 fn rx_time_to_utc_ts(rx_time: &str) -> u64 {
     let hour = rx_time[0..2].parse::<u32>().unwrap();
@@ -122,7 +122,7 @@ fn main() -> std::io::Result<()> {
             let prefix = &line[0..3];
             if supported_beacons.contains(&prefix) {  
                 i += 1;
-                println!("[{:06}] LINE1: {}", i, line); 
+                println!("[{:06}] {}", i, line); 
                 let beacon: AircraftBeacon = match parse_beacon_line(&line) {
                     Some(res) => res.unwrap(),
                     None => continue,
@@ -131,7 +131,7 @@ fn main() -> std::io::Result<()> {
                 println!("beacon: {}", beacon.to_json_str());
 
             // } else {
-            //     println!("[---] {}", line); 
+            //     println!("[------] {}", line); 
             }
         }
     }
