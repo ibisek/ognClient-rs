@@ -2,8 +2,10 @@ use std::{thread, time};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
 use std::net::TcpStream;
+use std::sync::Arc;
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
+use crate::data_structures::Observer;
 
 pub struct AprsServerConnection {
     address: String,
@@ -12,6 +14,7 @@ pub struct AprsServerConnection {
     next_reconnect_delay: u64, // [s]
     aprs_filter: String,
     username: String,
+    line_listeners: Vec<Arc<dyn Observer<String>>>,
 }
 
 impl AprsServerConnection {
@@ -22,7 +25,9 @@ impl AprsServerConnection {
             writer: None, 
             next_reconnect_delay:1, 
             aprs_filter: DEFAULT_APRS_FILTER.to_string(),
-            username: String::from(username) })
+            username: String::from(username),
+            line_listeners: Vec::new(),
+         })
     }
 
     pub fn connect(&mut self) {
@@ -50,7 +55,6 @@ impl AprsServerConnection {
         self.reader = Some(BufReader::new(stream));
 
         let handshake = format!("user {} pass -1 vers rustClient 0.1 filter {}", self.username, self.aprs_filter);
-        println!("XX HANDSH: {}", handshake);
         self.write(&handshake).unwrap();
     }
 
@@ -78,7 +82,19 @@ impl AprsServerConnection {
         }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
+        self.notify_line_isteners(line.clone());
+
         Some(line)
     }
-}
 
+    fn notify_line_isteners(&self, line: String) {
+        for listener in &self.line_listeners {
+            listener.notify(&line);
+        }
+    }
+
+    pub fn add_line_listener(&mut self, listener: &Observer<String> >) {    // Arc<dyn Observer<String>>
+        // TODO check already present
+        self.line_listeners.push(listener);
+    }
+}

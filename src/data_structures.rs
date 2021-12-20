@@ -8,30 +8,31 @@ use serde_json;
 use serde_json::json;
 
 // #[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct AircraftBeacon {
-    ts: u64,
-    prefix: String,
-    addr: String,
-    addr_type: AddressType,
-    lat: f64,
-    lon: f64,
-    altitude: i32,
-    course:u64,
-    speed:u32,
-    climb_rate: f64,
-    turn_rate: f64,
-    stealth: bool,
-    do_not_track: bool, 
-    aircraft_type: AircraftType,
+    pub ts: u64,
+    pub prefix: String,
+    pub addr: String,
+    pub addr_type: AddressType,
+    pub lat: f64,
+    pub lon: f64,
+    pub altitude: i32,
+    pub course:u64,
+    pub speed:u32,
+    pub climb_rate: f64,
+    pub turn_rate: f64,
+    pub stealth: bool,
+    pub do_not_track: bool, 
+    pub aircraft_type: AircraftType,
 }
 
 impl AircraftBeacon {
     pub fn new( ts: u64, prefix: String, addr: String, addr_type: AddressType,
         lat: f64, lon: f64, altitude: i32,
         course:u64, speed:u32, climb_rate: f64, turn_rate: f64, 
-        stealth: bool, do_not_track: bool, aircraft_type: AircraftType) -> Result<Self> {
+        stealth: bool, do_not_track: bool, aircraft_type: AircraftType) -> Self {
 
-        Ok(Self {ts, prefix, addr, addr_type, lat, lon, altitude, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type})
+        Self {ts, prefix, addr, addr_type, lat, lon, altitude, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type}
     }
 
     pub fn to_json_str(&self) -> String {
@@ -57,6 +58,7 @@ impl AircraftBeacon {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum AddressType {
     Unknown,
     Icao,
@@ -99,6 +101,7 @@ impl fmt::Display for AddressType {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum AircraftType {
     Undefined,
     Glider,
@@ -167,4 +170,8 @@ impl fmt::Display for AircraftType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value())
     }
+}
+
+pub trait Observer<E: Clone> {
+    fn notify(&self, event: &E);
 }
