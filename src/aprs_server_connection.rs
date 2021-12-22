@@ -14,7 +14,7 @@ pub struct AprsServerConnection {
     next_reconnect_delay: u64, // [s]
     aprs_filter: String,
     username: String,
-    line_listeners: Vec<Arc<dyn Observer<String>>>,
+    line_listeners: Vec<Box<dyn Observer<String>>>,
 }
 
 impl AprsServerConnection {
@@ -58,6 +58,10 @@ impl AprsServerConnection {
         self.write(&handshake).unwrap();
     }
 
+    /// Sets APRS filter to receive beacons from the desired area only. Use before calling the connect().
+    /// @param lat latitude of the area center [deg]
+    /// @param lon longitude of the area center [deg]
+    /// @param range [km]
     pub fn set_aprs_filter(&mut self, lat: f64, lon: f64, range: u32) {
         self.aprs_filter = format!("r/{:.4}/{:.4}/{}", lat, lon, range);
     }
@@ -91,9 +95,10 @@ impl AprsServerConnection {
         for listener in &self.line_listeners {
             listener.notify(&line);
         }
-    }
+    }   
 
-    pub fn add_line_listener(&mut self, listener: &Observer<String> >) {    // Arc<dyn Observer<String>>
+    pub fn add_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
+    // pub fn add_line_listener(&mut self, listener: &impl Observer<String>) {
         // TODO check already present
         self.line_listeners.push(listener);
     }
