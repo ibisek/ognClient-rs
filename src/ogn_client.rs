@@ -8,9 +8,16 @@ use crate::aprs_server_connection::AprsServerConnection;
 use crate::configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
 use crate::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
 
-pub struct MyLineListener {}
+pub struct MyLineListener {
+    i: u32,
+}
 
 impl MyLineListener {
+    fn new() -> MyLineListener {
+        MyLineListener {
+            i: 0,
+        }
+    }
     fn rx_time_to_utc_ts(rx_time: &str) -> u64 {
         let hour = rx_time[0..2].parse::<u32>().unwrap();
         let min = rx_time[2..4].parse::<u32>().unwrap();
@@ -112,21 +119,17 @@ impl MyLineListener {
 }
 
 impl Observer<String> for MyLineListener {
-    fn notify(&self, line: &String) {
+    fn notify(&mut self, line: &String) {
         // println!("MLL {}", line);
         let beacon_opt = self.parse_beacon_line(&line);
         
-        // if beacon_opt.is_some() {
-        //     let beacon = beacon_opt.unwrap();
-        //     for listener in &self.beacon_listeners {
-        //         listener.notify(&beacon);
-        //     }
-        // }
-
         if beacon_opt.is_some() {
             let beacon = beacon_opt.unwrap();
-            println!("beacon: {} {} {}", beacon.ts, beacon.prefix, beacon.addr);
-            // for listener in &self.beacon_listeners {
+
+            self.i += 1;
+            println!("MLL [{:06}]: {} {} {} {:>4}m {:>3}km/h", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed);
+
+            // for listener in &self.beacon_listeners.iter_mut() {
             //     listener.notify(&beacon);
             // }
         }
@@ -135,40 +138,43 @@ impl Observer<String> for MyLineListener {
 
 pub struct OgnClient {
     server: AprsServerConnection,
-    username: String,
     beacon_listeners: Vec<Box<dyn Observer<AircraftBeacon>>>,
+    // line_listener: Option<dyn Observer<String>>,
+    line_listener: Option<MyLineListener>,
 }
 
 // https://stackoverflow.com/questions/44928882/why-do-i-get-the-error-the-trait-foo-is-not-implemented-for-mut-t-even-th
-// impl Observer<String> for &mut OgnClient {
-//     fn notify(&self, line: &String) {
-//         let beacon_opt = self.parse_beacon_line(&line);
-//         if beacon_opt.is_some() {
-//             let beacon = beacon_opt.unwrap();
-//             for listener in &self.beacon_listeners {
-//                 listener.notify(&beacon);
-//             }
-//         }
-//     }
-// }
+impl Observer<String> for &mut OgnClient {
+    fn notify(&mut self, line: &String) {
+        println!("XX lyne: {}", line);
+        // let beacon_opt = self.parse_beacon_line(&line);
+        // if beacon_opt.is_some() {
+        //     let beacon = beacon_opt.unwrap();
+        //     for listener in &self.beacon_listeners {
+        //         listener.notify(&beacon);
+        //     }
+        // }
+    }
+}
 
 impl OgnClient {
     pub fn new(username: &str) -> Result<Self> {
         Ok(Self {
             server: AprsServerConnection::new(SERVER_ADDR, username)?,
-            username: username.to_string(),
             beacon_listeners: Vec::new(),
+            line_listener: None,
         })
     }
 
+    /// needs to be set before connect()
     pub fn set_aprs_filter(&mut self, lat: f64, lon: f64, range: u32) {
         self.server.set_aprs_filter(lat, lon, range);
     }
 
     pub fn connect(&mut self) {
         self.server.connect();
-        // self.server.add_line_listener(Arc::new(self));
-        self.server.add_line_listener(Box::new(MyLineListener {}));
+        // self.server.add_line_listener(Box::new(self));
+        self.server.add_line_listener(Box::new(MyLineListener::new()));
     }
 
     pub fn do_loop(&mut self) {
@@ -178,6 +184,7 @@ impl OgnClient {
     }
 
     pub fn add_beacon_listener(&mut self, observer: Box<dyn Observer<AircraftBeacon>>) {
+        // TODO check already in there
         self.beacon_listeners.push(observer);
     }
     
