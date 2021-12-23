@@ -54,7 +54,7 @@ impl AprsServerConnection {
         self.writer = Some(LineWriter::new(stream.try_clone().unwrap()));
         self.reader = Some(BufReader::new(stream));
 
-        let handshake = format!("user {} pass -1 vers rustClient 0.1 filter {}", self.username, self.aprs_filter);
+        let handshake = format!("user {} pass -1 vers rustClient 0.0.1 filter {}", self.username, self.aprs_filter);
         self.write(&handshake).unwrap();
     }
 
@@ -86,19 +86,20 @@ impl AprsServerConnection {
         }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
-        self.notify_line_isteners(line.clone());
+        self.notify_line_listeners(line.clone());
 
         Some(line)
     }
 
-    fn notify_line_isteners(&self, line: String) {
-        for listener in &self.line_listeners {
+    fn notify_line_listeners(&mut self, line: String) {
+        for listener in self.line_listeners.iter_mut() {
             listener.notify(&line);
         }
     }   
 
     pub fn add_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
-    // pub fn add_line_listener(&mut self, listener: &impl Observer<String>) {
+    // pub fn add_line_listener(&mut self, listener: &'static impl Observer<String>) {
+    // pub fn add_line_listener(&mut self, listener: &(impl Observer<String> + 'static)) {
         // TODO check already present
         self.line_listeners.push(listener);
     }
