@@ -39,3 +39,7 @@ Not yet decoded beacons:
 ruzne:  
     https://github.com/Turbo87/ogn-web-gateway/tree/master/src
     https://chercher.tech/rust/observer-design-pattern-rust
+
+    https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust
+    https://tokio.rs/blog/2021-05-14-inventing-the-service-trait
+    
