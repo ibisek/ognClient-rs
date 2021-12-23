@@ -22,7 +22,7 @@ use crate::ogn_client::{OgnClient};
 
 struct AircraftBeaconListener {}
 impl Observer<AircraftBeacon> for AircraftBeaconListener {
-    fn notify(&self, beacon: &AircraftBeacon) {
+    fn notify(&mut self, beacon: &AircraftBeacon) {
         println!("beacon: {}", beacon.to_json_str());
     }
 }
