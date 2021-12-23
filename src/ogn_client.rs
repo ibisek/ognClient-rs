@@ -51,7 +51,7 @@ impl MyLineListener {
             Some(caps) => caps,
             None => return None,
         };
-        // println!("CAPS: {:?}", caps);
+        println!("CAPS: {:?}", caps);
         let prefix = caps.get(1).unwrap().as_str().to_string();
         // let addr1 = caps.get(2).unwrap().as_str();
         let rx_time = caps.get(3).unwrap().as_str();
@@ -80,12 +80,12 @@ impl MyLineListener {
         let ts = Self::rx_time_to_utc_ts(rx_time); // convert rx_time to UTC ts
         // convert latitude to number:
         let signum = if lat_letter == "N" { 1.0 } else { -1.0 };
-        let lat =
-            signum * lat[0..2].parse::<f64>().unwrap() + lat[2..].parse::<f64>().unwrap() / 60.0;
+        let pos = lat.find('.').unwrap();   // 5140.77 -> 51 40.77
+        let lat = signum * lat[0..(pos-2)].parse::<f64>().unwrap() + lat[(pos-2)..].parse::<f64>().unwrap() / 60.0;
         // convert longitude to number:
         let signum = if lon_letter == "E" { 1.0 } else { -1.0 };
-        let lon =
-            signum * lon[0..3].parse::<f64>().unwrap() + lon[3..].parse::<f64>().unwrap() / 60.0;
+        let pos = lon.find('.').unwrap();   // 12345.67 -> 123 45.67
+        let lon = signum * lon[0..(pos-2)].parse::<f64>().unwrap() + lon[(pos-2)..].parse::<f64>().unwrap() / 60.0;
 
         let speed = (speed as f64 * 1.852).round() as u32; // [kt] -> [km/h]
         // parse flags & aircraft type  STxxxxaa
@@ -120,14 +120,14 @@ impl MyLineListener {
 
 impl Observer<String> for MyLineListener {
     fn notify(&mut self, line: &String) {
-        // println!("MLL {}", line);
+        println!("LINE {}", line);
         let beacon_opt = self.parse_beacon_line(&line);
         
         if beacon_opt.is_some() {
             let beacon = beacon_opt.unwrap();
 
             self.i += 1;
-            println!("MLL [{:06}]: {} {} {} {:>4}m {:>3}km/h", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed);
+            println!("MLL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
 
             // for listener in &self.beacon_listeners.iter_mut() {
             //     listener.notify(&beacon);
@@ -171,10 +171,11 @@ impl OgnClient {
         self.server.set_aprs_filter(lat, lon, range);
     }
 
-    pub fn connect(&mut self) {
+    pub fn connect(& mut self) {
         self.server.connect();
         // self.server.add_line_listener(Box::new(self));
-        self.server.add_line_listener(Box::new(MyLineListener::new()));
+        // self.server.add_line_listener(Box::new(MyLineListener::new()));
+        self.server.set_line_listener(Box::new(MyLineListener::new()));
     }
 
     pub fn do_loop(&mut self) {
@@ -183,9 +184,12 @@ impl OgnClient {
         }
     }
 
-    pub fn add_beacon_listener(&mut self, observer: Box<dyn Observer<AircraftBeacon>>) {
+    pub fn add_beacon_listener(&mut self, listener: Box<dyn Observer<AircraftBeacon>>) {
         // TODO check already in there
-        self.beacon_listeners.push(observer);
+        self.beacon_listeners.push(listener);
+        // if self.server.line_listener.is_some() {
+        //     self.server.line_listener.unwrap().put(listener);
+        // }
     }
     
 }

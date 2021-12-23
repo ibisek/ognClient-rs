@@ -14,7 +14,8 @@ pub struct AprsServerConnection {
     next_reconnect_delay: u64, // [s]
     aprs_filter: String,
     username: String,
-    line_listeners: Vec<Box<dyn Observer<String>>>,
+    // line_listeners: Vec<Box<dyn Observer<String>>>,
+    pub line_listener: Option<Box<dyn Observer<String>>>,
 }
 
 impl AprsServerConnection {
@@ -26,7 +27,8 @@ impl AprsServerConnection {
             next_reconnect_delay:1, 
             aprs_filter: DEFAULT_APRS_FILTER.to_string(),
             username: String::from(username),
-            line_listeners: Vec::new(),
+            // line_listeners: Vec::new(),
+            line_listener: None,
          })
     }
 
@@ -86,21 +88,33 @@ impl AprsServerConnection {
         }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
-        self.notify_line_listeners(line.clone());
+        // self.notify_line_listeners(line.clone());
+        self.notify_line_listener(line.clone());
 
         Some(line)
     }
 
-    fn notify_line_listeners(&mut self, line: String) {
-        for listener in self.line_listeners.iter_mut() {
-            listener.notify(&line);
+    // fn notify_line_listeners(&mut self, line: String) {
+    //     for listener in self.line_listeners.iter_mut() {
+    //         listener.notify(&line);
+    //     }
+    // }   
+
+    fn notify_line_listener(&mut self, line: String) {
+        if self.line_listener.is_some() {
+            self.line_listener.as_mut().unwrap().notify(&line);
         }
     }   
 
-    pub fn add_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
-    // pub fn add_line_listener(&mut self, listener: &'static impl Observer<String>) {
-    // pub fn add_line_listener(&mut self, listener: &(impl Observer<String> + 'static)) {
-        // TODO check already present
-        self.line_listeners.push(listener);
+
+    // pub fn add_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
+    // // pub fn add_line_listener(&mut self, listener: &'static impl Observer<String>) {
+    // // pub fn add_line_listener(&mut self, listener: &(impl Observer<String> + 'static)) {
+    //     // TODO check already present
+    //     self.line_listeners.push(listener);
+    // }
+
+    pub fn set_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
+        self.line_listener = Some(listener);
     }
 }

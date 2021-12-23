@@ -4,6 +4,7 @@ pub const DELAY_MS: u64 = 1*1000;
 pub const SERVER_ADDR: &str = "aprs.glidernet.org:14580";   // port filtered
 // pub const SERVER_ADDR: &str = "aprs.glidernet.org:10152";   // port unfiltered .. whatever that means
 
+// pub const DEFAULT_APRS_FILTER: &str = "";
 pub const DEFAULT_APRS_FILTER: &str = "r/49.3678/16.1144/999999";
 // pub const DEFAULT_APRS_FILTER: &str = "m/200";
 
