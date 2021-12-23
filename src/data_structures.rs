@@ -173,5 +173,5 @@ impl fmt::Display for AircraftType {
 }
 
 pub trait Observer<E: Clone> {
-    fn notify(&self, event: &E);
+    fn notify(&mut self, event: &E);
 }
