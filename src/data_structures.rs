@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 use std::fmt;
-use std::io::{Result};
 
 // use serde::{Serialize, Deserialize};
 use serde_json;
@@ -174,4 +173,12 @@ impl fmt::Display for AircraftType {
 
 pub trait Observer<E: Clone> {
     fn notify(&mut self, event: &E);
+}
+
+pub trait LineListener {
+    fn notify(&mut self, line: &str);
+}
+
+pub trait AircraftBeaconListener {
+    fn notify(&mut self, beacon: &AircraftBeacon);
 }

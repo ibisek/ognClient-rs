@@ -2,7 +2,6 @@ use std::{thread, time};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
 use std::net::TcpStream;
-use std::sync::Arc;
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
 use crate::data_structures::Observer;
@@ -111,7 +110,9 @@ impl AprsServerConnection {
     // // pub fn add_line_listener(&mut self, listener: &'static impl Observer<String>) {
     // // pub fn add_line_listener(&mut self, listener: &(impl Observer<String> + 'static)) {
     //     // TODO check already present
-    //     self.line_listeners.push(listener);
+    //     if !self.line_listeners.contains(listener) {
+    //         self.line_listeners.push(listener);
+    //     }
     // }
 
     pub fn set_line_listener(&mut self, listener: Box<dyn Observer<String>>) {

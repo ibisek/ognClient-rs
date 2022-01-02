@@ -10,12 +10,14 @@ use crate::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer
 
 pub struct MyLineListener {
     i: u32,
+    beacon_listener: Option<Box<dyn Observer<AircraftBeacon>>>,
 }
 
 impl MyLineListener {
-    fn new() -> MyLineListener {
+    pub fn new() -> MyLineListener {
         MyLineListener {
             i: 0,
+            beacon_listener: None,
         }
     }
     fn rx_time_to_utc_ts(rx_time: &str) -> u64 {
@@ -36,7 +38,8 @@ impl MyLineListener {
         utc.timestamp() as u64
     }
 
-    fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
+    pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
+        let x = Regex::new(AIRCRAFT_REGEX).unwrap();
         lazy_static! {
             static ref AIRCRAFT_RE: Regex = Regex::new(AIRCRAFT_REGEX).unwrap();
             static ref SUPPORTED_BEACONS: Vec<String> =
@@ -116,6 +119,10 @@ impl MyLineListener {
         );
         Some(beacon)
     }
+
+    pub fn set_beacon_listener(&mut self, listener: Box<dyn Observer<AircraftBeacon>>) {
+        self.beacon_listener = Some(listener);
+    }
 }
 
 impl Observer<String> for MyLineListener {
@@ -174,6 +181,7 @@ impl OgnClient {
     pub fn connect(& mut self) {
         self.server.connect();
         // self.server.add_line_listener(Box::new(self));
+        // self.server.set_line_listener(Box::new(self));
         // self.server.add_line_listener(Box::new(MyLineListener::new()));
         self.server.set_line_listener(Box::new(MyLineListener::new()));
     }
@@ -184,13 +192,13 @@ impl OgnClient {
         }
     }
 
-    pub fn add_beacon_listener(&mut self, listener: Box<dyn Observer<AircraftBeacon>>) {
-        // TODO check already in there
-        self.beacon_listeners.push(listener);
-        // if self.server.line_listener.is_some() {
-        //     self.server.line_listener.unwrap().put(listener);
-        // }
-    }
+    // pub fn add_beacon_listener(&mut self, listener: Box<dyn Observer<AircraftBeacon>>) {
+    //     // TODO check already in there
+    //     // self.beacon_listeners.push(listener);
+    //     if self.server.line_listener.is_some() {
+    //         self.server.line_listener.unwrap().set_beacon_listener(listener);
+    //     }
+    // }
     
 }
 

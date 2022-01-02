@@ -1,23 +1,15 @@
 #[warn(non_snake_case)]
 
-use std::io::{Result};
-use std::process;
-// use std::String;
-// use std::char;
-use std::str;
-use regex::Regex;
-use lazy_static::lazy_static;
-use chrono::prelude::*;
+// use std::process;
 
 mod configuration;
 mod data_structures;
 mod aprs_server_connection;
 mod ogn_client;
 
-use crate::configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
-use crate::data_structures::{AircraftBeacon, AddressType, AircraftType, Observer};
-use crate::aprs_server_connection::AprsServerConnection;
+use crate::data_structures::{AircraftBeacon, Observer};
 use crate::ogn_client::{OgnClient};
+use crate::ogn_client::MyLineListener;
 
 
 struct AircraftBeaconListener {}
@@ -30,7 +22,8 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
 fn main() -> std::io::Result<()> {
     // let line = "ICA4B43D0>OGFLR,qAS,Brunnen:/202242h4654.10N/00837.09EX339/122/A=002428 !W45! id0D4B43D0 +238fpm +0.1rot 9.2dB -0.5kHz gps2x3 s7.03 h03 rDDAE09 +6.9dBm";
     // let line = "OGNC35002>OGNTRK,qAS,Sobesice:/081541h4913.50N/01634.47E'000/000/A=001053 !W81! id07C35002 +000fpm +0.0rot FL010.53 5.8dB 1e +5.2kHz gps4x6";
-    // parse_beacon_line(&line);
+    // let line = "FLRDF0EFE>APRS,qAS,FYPOtest:/045949h2350.79S\01756.91E^172/098/A=004979 !W29! id22DF0EFE -197fpm +3.0rot FLRDF0EFE>APRS,qAR:/050107h2349.68S\01755.97E^330/065/A=005307 !W63! id22DF0EFE +238fpm -0.1rot 15.8dB 0e -9.4kHz gps1x3";
+    // MyLineListener::new().parse_beacon_line(&line);
     // process::exit(1);
 
     let username = "blume";
@@ -41,6 +34,7 @@ fn main() -> std::io::Result<()> {
     let mut client: OgnClient = OgnClient::new(username)?;
     client.set_aprs_filter(lat, lon, range);
     client.connect();
+    // client.add_beacon_listener(xxx);
     
     println!("Entering the loop..");
     // let supported_beacons: Vec<&str> = vec!["OGN", "FLR", "ICA"];
