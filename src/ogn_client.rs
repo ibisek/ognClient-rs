@@ -147,47 +147,25 @@ impl Observer<String> for MyLineListener {
 
 pub struct OgnClient {
     server: AprsServerConnection,
-    // beacon_listeners: Vec<Box<dyn Observer<AircraftBeacon>>>,
-    // beacon_listener: Option<Box<dyn Observer<AircraftBeacon>>>,
-    // line_listener: Option<dyn Observer<String>>,
     line_listener: Option<MyLineListener>,
-}
-
-// https://stackoverflow.com/questions/44928882/why-do-i-get-the-error-the-trait-foo-is-not-implemented-for-mut-t-even-th
-impl Observer<String> for &mut OgnClient {
-    fn notify(&mut self, line: &String) {
-        println!("XX lyne: {}", line);
-        // let beacon_opt = self.parse_beacon_line(&line);
-        // if beacon_opt.is_some() {
-        //     let beacon = beacon_opt.unwrap();
-        //     for listener in &self.beacon_listeners {
-        //         listener.notify(&beacon);
-        //     }
-        // }
-    }
 }
 
 impl OgnClient {
     pub fn new(username: &str) -> Result<Self> {
         Ok(Self {
             server: AprsServerConnection::new(SERVER_ADDR, username)?,
-            // beacon_listener: None,
             line_listener: None,
         })
     }
 
-    /// needs to be set before connect()
+    /// Needs to be set before connect()!
     pub fn set_aprs_filter(&mut self, lat: f64, lon: f64, range: u32) {
         self.server.set_aprs_filter(lat, lon, range);
     }
 
     pub fn connect(& mut self) {
         self.server.connect();
-        // self.server.add_line_listener(Box::new(self));
-        // self.server.set_line_listener(Box::new(self));
-        // self.server.add_line_listener(Box::new(MyLineListener::new()));
         self.server.set_line_listener(MyLineListener::new());
-        // self.server.set_line_listener_fn(MyLineListener::new().parse_line);
     }
 
     pub fn do_loop(&mut self) {
@@ -196,47 +174,11 @@ impl OgnClient {
         }
     }
 
-    // pub fn add_beacon_listener(&mut self, listener: Box<dyn Observer<AircraftBeacon>>) {
-    //     // TODO check already in there
-    //     // self.beacon_listeners.push(listener);
-    //     if self.server.line_listener.is_some() {
-    //         self.server.line_listener.unwrap().set_beacon_listener(listener);
-    //     }
-    // }
-
     pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
         if self.line_listener.is_some() {
             self.line_listener.as_mut().unwrap().set_beacon_listener(listener);
         }
+        
     }
     
 }
-
-// #[derive(Debug, Clone)]
-// pub struct Event {
-//     line: String,
-//     beacon: Option<AircraftBeacon>,
-// }
-
-// pub trait Observable {
-//     fn register(&mut self, observer: Box<dyn Observer<Event>>);
-// }
-
-// impl Observable for OgnClient {
-//     fn register(&mut self, observer: Box<dyn Observer<Event>>) {
-//         self.listeners.push(observer);
-//     }
-// }
-
-// pub struct EventConsumer {}
-
-// impl Observer<Event> for EventConsumer {
-//     fn notify(&self, event: &Event) {
-//         println!("GOT EVENT\n beaconek: {:?}", event.line);
-//         if event.beacon.is_some() {
-//             println!(" beacon: {:?}", event.beacon.as_ref().unwrap());
-//         } else {
-//             println!(" No beacon set");
-//         }
-//     }
-// }
