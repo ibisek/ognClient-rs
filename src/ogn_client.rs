@@ -3,20 +3,23 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::io::Result;
 use std::str;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 
 use crate::aprs_server_connection::AprsServerConnection;
 use crate::configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
 use crate::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
 
+
+//#[derive(Clone)]
 pub struct MyLineListener {
-    i: u32,
-    beacon_listener: Option<Box<dyn Observer<AircraftBeacon>>>,
+    beacon_listener: Option<Rc<RefCell<dyn Observer<AircraftBeacon>>>>,
 }
 
 impl MyLineListener {
     pub fn new() -> MyLineListener {
         MyLineListener {
-            i: 0,
             beacon_listener: None,
         }
     }
@@ -53,7 +56,8 @@ impl MyLineListener {
             Some(caps) => caps,
             None => return None,
         };
-        println!("CAPS: {:?}", caps);
+        // println!("CAPS: {:?}", caps);
+
         let prefix = caps.get(1).unwrap().as_str().to_string();
         // let addr1 = caps.get(2).unwrap().as_str();
         let rx_time = caps.get(3).unwrap().as_str();
@@ -120,26 +124,23 @@ impl MyLineListener {
     }
 
     pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
-        self.beacon_listener = Some(Box::new(listener));
+        self.beacon_listener = Some(Rc::new(RefCell::new(listener)));
     }
 }
 
 impl Observer<String> for MyLineListener {
     fn notify(&mut self, line: &String) {
-        println!("LINE {}", line);
+        // println!("MLL.line: {}", line);
         let beacon_opt = self.parse_beacon_line(&line);
         
         if beacon_opt.is_some() {
             let beacon = beacon_opt.unwrap();
 
-            self.i += 1;
-            println!("MLL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
-
             // for listener in &self.beacon_listeners.iter_mut() {
             //     listener.notify(&beacon);
             // }
             if self.beacon_listener.is_some() {
-                self.beacon_listener.as_mut().unwrap().notify(&beacon);
+                self.beacon_listener.as_mut().unwrap().borrow_mut().notify(&beacon);
             }
         }
     }
@@ -147,14 +148,22 @@ impl Observer<String> for MyLineListener {
 
 pub struct OgnClient {
     server: AprsServerConnection,
-    line_listener: Option<MyLineListener>,
+    // line_listener: Option<MyLineListener>,
+    line_listener: Option<Rc<RefCell<MyLineListener>>>,
 }
 
 impl OgnClient {
     pub fn new(username: &str) -> Result<Self> {
+        // let line_listener = MyLineListener::new();
+        // let line_listener = RefCell::new(MyLineListener::new());
+        let line_listener = Rc::new(RefCell::new(MyLineListener::new()));
+
+        let mut server = AprsServerConnection::new(SERVER_ADDR, username)?; 
+        server.set_line_listener(Rc::clone(&line_listener));    // this finally clones the fucking reference, not the content!
+
         Ok(Self {
-            server: AprsServerConnection::new(SERVER_ADDR, username)?,
-            line_listener: None,
+            server: server,
+            line_listener: Some(line_listener),
         })
     }
 
@@ -165,7 +174,7 @@ impl OgnClient {
 
     pub fn connect(& mut self) {
         self.server.connect();
-        self.server.set_line_listener(MyLineListener::new());
+        
     }
 
     pub fn do_loop(&mut self) {
@@ -175,9 +184,12 @@ impl OgnClient {
     }
 
     pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
-        if self.line_listener.is_some() {
-            self.line_listener.as_mut().unwrap().set_beacon_listener(listener);
-        }
+        // self.line_listener.set_beacon_listener(listener);
+        self.line_listener.as_mut().unwrap().borrow_mut().set_beacon_listener(listener);
+    
+        // if self.line_listener.is_some() {
+        //     self.line_listener.as_mut().unwrap().borrow_mut().set_beacon_listener(listener);
+        // }
         
     }
     

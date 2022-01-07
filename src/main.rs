@@ -10,18 +10,23 @@ mod ogn_client;
 use crate::data_structures::{AircraftBeacon, Observer};
 use crate::ogn_client::{OgnClient};
 
-
-struct AircraftBeaconListener {}
+struct AircraftBeaconListener {
+    i: u32,
+}
 
 impl AircraftBeaconListener {
     fn new() -> AircraftBeaconListener {
-        Self {}
+        Self {
+            i:0,
+        }
     }
 }
 
 impl Observer<AircraftBeacon> for AircraftBeaconListener {
     fn notify(&mut self, beacon: &AircraftBeacon) {
         println!("beacon: {}", beacon.to_json_str());
+        self.i += 1;
+        println!("ABL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
     }
 }
 

@@ -2,9 +2,13 @@ use std::{thread, time};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
 use std::net::TcpStream;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
 use crate::data_structures::Observer;
+
 
 pub struct AprsServerConnection {
     address: String,
@@ -14,7 +18,8 @@ pub struct AprsServerConnection {
     aprs_filter: String,
     username: String,
     // line_listeners: Vec<Box<dyn Observer<String>>>,
-    pub line_listener: Option<Box<dyn Observer<String>>>,
+    // pub line_listener: Option<Box<dyn Observer<String>>>,
+    pub line_listener: Option<Rc<RefCell<dyn Observer<String>>>>,
     // pub line_listener_fn: Option<Box<dyn Fn(String)>>,
 }
 
@@ -103,7 +108,7 @@ impl AprsServerConnection {
 
     fn notify_line_listener(&mut self, line: String) {
         if self.line_listener.is_some() {
-            self.line_listener.as_mut().unwrap().notify(&line);
+            self.line_listener.as_mut().unwrap().borrow_mut().notify(&line);
         }
 
         // if self.line_listener_fn.is_some() {
@@ -121,8 +126,9 @@ impl AprsServerConnection {
     //     }
     // }
 
-    pub fn set_line_listener(&mut self, listener: impl Observer<String> + 'static) {
-        self.line_listener = Some(Box::new(listener));
+    // pub fn set_line_listener(&mut self, listener: impl Observer<String> + 'static) {
+    pub fn set_line_listener(&mut self, listener: Rc<RefCell<impl Observer<String> + 'static>>) {
+        self.line_listener = Some(listener);
     }
 
     // pub fn set_line_listener_fn<F: 'static>(&mut self, handler: F)
@@ -132,3 +138,4 @@ impl AprsServerConnection {
     //     self.line_listener_fn = Some(Box::new(handler));
     // }
 }
+
