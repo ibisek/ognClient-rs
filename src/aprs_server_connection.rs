@@ -15,6 +15,7 @@ pub struct AprsServerConnection {
     username: String,
     // line_listeners: Vec<Box<dyn Observer<String>>>,
     pub line_listener: Option<Box<dyn Observer<String>>>,
+    // pub line_listener_fn: Option<Box<dyn Fn(String)>>,
 }
 
 impl AprsServerConnection {
@@ -28,6 +29,7 @@ impl AprsServerConnection {
             username: String::from(username),
             // line_listeners: Vec::new(),
             line_listener: None,
+            // line_listener_fn: None,
          })
     }
 
@@ -103,6 +105,10 @@ impl AprsServerConnection {
         if self.line_listener.is_some() {
             self.line_listener.as_mut().unwrap().notify(&line);
         }
+
+        // if self.line_listener_fn.is_some() {
+        //     (self.line_listener_fn.as_mut().unwrap())(line);
+        // }
     }   
 
 
@@ -115,7 +121,14 @@ impl AprsServerConnection {
     //     }
     // }
 
-    pub fn set_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
-        self.line_listener = Some(listener);
+    pub fn set_line_listener(&mut self, listener: impl Observer<String> + 'static) {
+        self.line_listener = Some(Box::new(listener));
     }
+
+    // pub fn set_line_listener_fn<F: 'static>(&mut self, handler: F)
+    // where
+    //     F: Fn(String) -> ()
+    // {
+    //     self.line_listener_fn = Some(Box::new(handler));
+    // }
 }

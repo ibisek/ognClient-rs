@@ -39,7 +39,6 @@ impl MyLineListener {
     }
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
-        let x = Regex::new(AIRCRAFT_REGEX).unwrap();
         lazy_static! {
             static ref AIRCRAFT_RE: Regex = Regex::new(AIRCRAFT_REGEX).unwrap();
             static ref SUPPORTED_BEACONS: Vec<String> =
@@ -120,8 +119,8 @@ impl MyLineListener {
         Some(beacon)
     }
 
-    pub fn set_beacon_listener(&mut self, listener: Box<dyn Observer<AircraftBeacon>>) {
-        self.beacon_listener = Some(listener);
+    pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
+        self.beacon_listener = Some(Box::new(listener));
     }
 }
 
@@ -139,13 +138,17 @@ impl Observer<String> for MyLineListener {
             // for listener in &self.beacon_listeners.iter_mut() {
             //     listener.notify(&beacon);
             // }
+            if self.beacon_listener.is_some() {
+                self.beacon_listener.as_mut().unwrap().notify(&beacon);
+            }
         }
     }
 }
 
 pub struct OgnClient {
     server: AprsServerConnection,
-    beacon_listeners: Vec<Box<dyn Observer<AircraftBeacon>>>,
+    // beacon_listeners: Vec<Box<dyn Observer<AircraftBeacon>>>,
+    // beacon_listener: Option<Box<dyn Observer<AircraftBeacon>>>,
     // line_listener: Option<dyn Observer<String>>,
     line_listener: Option<MyLineListener>,
 }
@@ -168,7 +171,7 @@ impl OgnClient {
     pub fn new(username: &str) -> Result<Self> {
         Ok(Self {
             server: AprsServerConnection::new(SERVER_ADDR, username)?,
-            beacon_listeners: Vec::new(),
+            // beacon_listener: None,
             line_listener: None,
         })
     }
@@ -183,7 +186,8 @@ impl OgnClient {
         // self.server.add_line_listener(Box::new(self));
         // self.server.set_line_listener(Box::new(self));
         // self.server.add_line_listener(Box::new(MyLineListener::new()));
-        self.server.set_line_listener(Box::new(MyLineListener::new()));
+        self.server.set_line_listener(MyLineListener::new());
+        // self.server.set_line_listener_fn(MyLineListener::new().parse_line);
     }
 
     pub fn do_loop(&mut self) {
@@ -199,6 +203,12 @@ impl OgnClient {
     //         self.server.line_listener.unwrap().set_beacon_listener(listener);
     //     }
     // }
+
+    pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
+        if self.line_listener.is_some() {
+            self.line_listener.as_mut().unwrap().set_beacon_listener(listener);
+        }
+    }
     
 }
 

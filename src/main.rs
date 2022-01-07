@@ -9,15 +9,22 @@ mod ogn_client;
 
 use crate::data_structures::{AircraftBeacon, Observer};
 use crate::ogn_client::{OgnClient};
-use crate::ogn_client::MyLineListener;
 
 
 struct AircraftBeaconListener {}
+
+impl AircraftBeaconListener {
+    fn new() -> AircraftBeaconListener {
+        Self {}
+    }
+}
+
 impl Observer<AircraftBeacon> for AircraftBeaconListener {
     fn notify(&mut self, beacon: &AircraftBeacon) {
         println!("beacon: {}", beacon.to_json_str());
     }
 }
+
 
 fn main() -> std::io::Result<()> {
     // let line = "ICA4B43D0>OGFLR,qAS,Brunnen:/202242h4654.10N/00837.09EX339/122/A=002428 !W45! id0D4B43D0 +238fpm +0.1rot 9.2dB -0.5kHz gps2x3 s7.03 h03 rDDAE09 +6.9dBm";
@@ -34,7 +41,8 @@ fn main() -> std::io::Result<()> {
     let mut client: OgnClient = OgnClient::new(username)?;
     client.set_aprs_filter(lat, lon, range);
     client.connect();
-    // client.add_beacon_listener(xxx);
+
+    client.set_beacon_listener(AircraftBeaconListener::new());
     
     println!("Entering the loop..");
     // let supported_beacons: Vec<&str> = vec!["OGN", "FLR", "ICA"];
