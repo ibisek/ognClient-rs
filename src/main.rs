@@ -2,12 +2,19 @@
 
 // use std::process;
 
+// #[macro_use]
+extern crate queues;
+use queues::*;
+// use queues::Queue;
+use std::sync::Arc;
+use std::sync::Mutex;
+
 mod configuration;
 mod data_structures;
 mod aprs_server_connection;
 mod ogn_client;
 
-use crate::data_structures::{AircraftBeacon, Observer};
+use crate::data_structures::{AircraftBeacon, Observer, AddressType};
 use crate::ogn_client::{OgnClient};
 
 struct AircraftBeaconListener {
@@ -26,7 +33,7 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
     fn notify(&mut self, beacon: &AircraftBeacon) {
         println!("beacon: {}", beacon.to_json_str());
         self.i += 1;
-        println!("ABL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
+        // println!("ABL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
     }
 }
 
@@ -48,6 +55,17 @@ fn main() -> std::io::Result<()> {
     client.connect();
 
     client.set_beacon_listener(AircraftBeaconListener::new());
+
+    // let mut queue_ogn: Queue<AircraftBeacon> = queue![];
+    let queue_ogn: Arc<Mutex<Queue<AircraftBeacon>>>  = Arc::new(Mutex::new(Queue::new()));
+    
+    let ogn_q = Arc::clone(&queue_ogn);
+    client.set_beacon_listener_fn(move |beacon: AircraftBeacon| {
+        println!("_FN: qs: {}; b.addr: {}", ogn_q.lock().unwrap().size()+1, beacon.addr);
+        if beacon.addr_type == AddressType::Ogn {
+            ogn_q.lock().unwrap().add(beacon).unwrap();
+        }
+    });
     
     println!("Entering the loop..");
     // let supported_beacons: Vec<&str> = vec!["OGN", "FLR", "ICA"];
@@ -76,6 +94,10 @@ fn main() -> std::io::Result<()> {
     //         }
     //     }
     // }
+
+    //--
+
+    //--
 
     client.do_loop();
 
