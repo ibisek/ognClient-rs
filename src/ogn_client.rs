@@ -15,12 +15,14 @@ use crate::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer
 //#[derive(Clone)]
 pub struct MyLineListener {
     beacon_listener: Option<Rc<RefCell<dyn Observer<AircraftBeacon>>>>,
+    beacon_listener_fn: Option<Box<dyn Fn(AircraftBeacon)>>,
 }
 
 impl MyLineListener {
     pub fn new() -> MyLineListener {
         MyLineListener {
             beacon_listener: None,
+            beacon_listener_fn: None,
         }
     }
     fn rx_time_to_utc_ts(rx_time: &str) -> u64 {
@@ -126,6 +128,14 @@ impl MyLineListener {
     pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
         self.beacon_listener = Some(Rc::new(RefCell::new(listener)));
     }
+
+    pub fn set_beacon_listener_fn<F: 'static>(&mut self, callback: F) 
+    where
+        F: Fn(AircraftBeacon)
+    {
+        self.beacon_listener_fn = Some(Box::new(callback));
+    }
+
 }
 
 impl Observer<String> for MyLineListener {
@@ -136,11 +146,12 @@ impl Observer<String> for MyLineListener {
         if beacon_opt.is_some() {
             let beacon = beacon_opt.unwrap();
 
-            // for listener in &self.beacon_listeners.iter_mut() {
-            //     listener.notify(&beacon);
-            // }
             if self.beacon_listener.is_some() {
                 self.beacon_listener.as_mut().unwrap().borrow_mut().notify(&beacon);
+            }
+
+            if self.beacon_listener_fn.is_some() {
+                (self.beacon_listener_fn.as_mut().unwrap())(beacon);
             }
         }
     }
@@ -148,8 +159,7 @@ impl Observer<String> for MyLineListener {
 
 pub struct OgnClient {
     server: AprsServerConnection,
-    // line_listener: Option<MyLineListener>,
-    line_listener: Option<Rc<RefCell<MyLineListener>>>,
+    line_listener: Rc<RefCell<MyLineListener>>,
 }
 
 impl OgnClient {
@@ -163,7 +173,7 @@ impl OgnClient {
 
         Ok(Self {
             server: server,
-            line_listener: Some(line_listener),
+            line_listener: line_listener,
         })
     }
 
@@ -184,13 +194,15 @@ impl OgnClient {
     }
 
     pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
-        // self.line_listener.set_beacon_listener(listener);
-        self.line_listener.as_mut().unwrap().borrow_mut().set_beacon_listener(listener);
-    
-        // if self.line_listener.is_some() {
-        //     self.line_listener.as_mut().unwrap().borrow_mut().set_beacon_listener(listener);
-        // }
-        
+        // self.line_listener.as_mut().unwrap().borrow_mut().set_beacon_listener(listener);
+        self.line_listener.borrow_mut().set_beacon_listener(listener);
+    }
+
+    pub fn set_beacon_listener_fn<F: 'static>(&mut self, callback: F) 
+    where
+        F: Fn(AircraftBeacon)
+    {
+        self.line_listener.borrow_mut().set_beacon_listener_fn(callback);
     }
     
 }
