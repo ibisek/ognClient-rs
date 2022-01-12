@@ -1,5 +1,5 @@
 [package]
-name = "pokus1"
+name = "ogn_client"
 version = "0.1.0"
 authors = ["ibisek <ibisek@protonmail.com>"]
 edition = "2021"
