@@ -1,6 +1,7 @@
 .git/
 .idea/
 .vscode/
+target/
 Cargo.lock
 **/*.rs.bk
 
