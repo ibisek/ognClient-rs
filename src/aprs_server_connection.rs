@@ -102,13 +102,13 @@ impl AprsServerConnection {
 
     // fn notify_line_listeners(&mut self, line: String) {
     //     for listener in self.line_listeners.iter_mut() {
-    //         listener.notify(&line);
+    //         listener.notify(line);
     //     }
     // }   
 
     fn notify_line_listener(&mut self, line: String) {
         if self.line_listener.is_some() {
-            self.line_listener.as_mut().unwrap().borrow_mut().notify(&line);
+            self.line_listener.as_mut().unwrap().borrow_mut().notify(line);
         }
 
         // if self.line_listener_fn.is_some() {

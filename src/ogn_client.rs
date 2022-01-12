@@ -56,7 +56,10 @@ impl MyLineListener {
 
         let caps = match AIRCRAFT_RE.captures(line) {
             Some(caps) => caps,
-            None => return None,
+            None => {
+                // println!("[INFO] ignored line: {}", line);
+                return None
+            }
         };
         // println!("CAPS: {:?}", caps);
 
@@ -139,7 +142,7 @@ impl MyLineListener {
 }
 
 impl Observer<String> for MyLineListener {
-    fn notify(&mut self, line: &String) {
+    fn notify(&mut self, line: String) {
         // println!("MLL.line: {}", line);
         let beacon_opt = self.parse_beacon_line(&line);
         
@@ -147,7 +150,7 @@ impl Observer<String> for MyLineListener {
             let beacon = beacon_opt.unwrap();
 
             if self.beacon_listener.is_some() {
-                self.beacon_listener.as_mut().unwrap().borrow_mut().notify(&beacon);
+                self.beacon_listener.as_mut().unwrap().borrow_mut().notify(beacon.clone());
             }
 
             if self.beacon_listener_fn.is_some() {
