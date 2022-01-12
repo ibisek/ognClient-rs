@@ -8,6 +8,7 @@ use queues::*;
 // use queues::Queue;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::SystemTime;
 
 mod configuration;
 mod data_structures;
@@ -19,21 +20,51 @@ use crate::ogn_client::{OgnClient};
 
 struct AircraftBeaconListener {
     i: u32,
+    ogn_q: Arc<Mutex<Queue<AircraftBeacon>>>,
+    icao_q: Arc<Mutex<Queue<AircraftBeacon>>>,
+    flarm_q: Arc<Mutex<Queue<AircraftBeacon>>>,
+    time: SystemTime,
 }
 
 impl AircraftBeaconListener {
-    fn new() -> AircraftBeaconListener {
+    fn new(ogn_q: Arc<Mutex<Queue<AircraftBeacon>>>, 
+        icao_q: Arc<Mutex<Queue<AircraftBeacon>>>, 
+        flarm_q: Arc<Mutex<Queue<AircraftBeacon>>>) -> AircraftBeaconListener {
         Self {
             i:0,
+            ogn_q,
+            icao_q,
+            flarm_q,
+            time: SystemTime::now(),
         }
     }
 }
 
 impl Observer<AircraftBeacon> for AircraftBeaconListener {
-    fn notify(&mut self, beacon: &AircraftBeacon) {
-        println!("beacon: {}", beacon.to_json_str());
+    fn notify(&mut self, beacon: AircraftBeacon) {
+        // println!("beacon: {}", beacon.to_json_str());
         self.i += 1;
         // println!("ABL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
+
+        if beacon.addr_type == AddressType::Ogn {
+            self.ogn_q.lock().unwrap().add(beacon).unwrap();
+        } else 
+        if beacon.addr_type == AddressType::Icao {
+            self.icao_q.lock().unwrap().add(beacon).unwrap();
+        } else 
+        if beacon.addr_type == AddressType::Flarm {
+            self.flarm_q.lock().unwrap().add(beacon).unwrap();
+        } 
+
+        if self.time.elapsed().unwrap().as_secs() >= 60 {
+            println!("[INFO] Beacon rate: {}/min, {} queued.", 
+                self.i, 
+                self.ogn_q.lock().unwrap().size() + self.icao_q.lock().unwrap().size() +self.flarm_q.lock().unwrap().size(),
+            );
+            
+            self.i = 0;
+            self.time = SystemTime::now();
+        }
     }
 }
 
@@ -54,18 +85,20 @@ fn main() -> std::io::Result<()> {
     client.set_aprs_filter(lat, lon, range);
     client.connect();
 
-    client.set_beacon_listener(AircraftBeaconListener::new());
-
     // let mut queue_ogn: Queue<AircraftBeacon> = queue![];
     let queue_ogn: Arc<Mutex<Queue<AircraftBeacon>>>  = Arc::new(Mutex::new(Queue::new()));
+    let queue_icao: Arc<Mutex<Queue<AircraftBeacon>>>  = Arc::new(Mutex::new(Queue::new()));
+    let queue_flarm: Arc<Mutex<Queue<AircraftBeacon>>>  = Arc::new(Mutex::new(Queue::new()));
     
-    let ogn_q = Arc::clone(&queue_ogn);
-    client.set_beacon_listener_fn(move |beacon: AircraftBeacon| {
-        println!("_FN: qs: {}; b.addr: {}", ogn_q.lock().unwrap().size()+1, beacon.addr);
-        if beacon.addr_type == AddressType::Ogn {
-            ogn_q.lock().unwrap().add(beacon).unwrap();
-        }
-    });
+    client.set_beacon_listener(AircraftBeaconListener::new(
+        Arc::clone(&queue_ogn),
+        Arc::clone(&queue_icao),
+        Arc::clone(&queue_flarm),
+    ));
+    
+    // client.set_beacon_listener_fn(move |beacon: AircraftBeacon| {
+    //     println!("_FN: {} {}", beacon.addr_type, beacon.addr);
+    // });
     
     println!("Entering the loop..");
     // let supported_beacons: Vec<&str> = vec!["OGN", "FLR", "ICA"];
