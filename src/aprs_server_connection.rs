@@ -1,10 +1,10 @@
+
 use std::{thread, time};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
 use std::net::TcpStream;
 use std::cell::RefCell;
 use std::rc::Rc;
-
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
 use crate::data_structures::Observer;
@@ -35,11 +35,11 @@ impl AprsServerConnection {
             // line_listeners: Vec::new(),
             line_listener: None,
             // line_listener_fn: None,
-         })
+        })
     }
 
     pub fn connect(&mut self) {
-	print!("Connecting.. ");
+    print!("Connecting.. ");
         let stream = match TcpStream::connect(self.address.clone()) {
             Ok(stream) => {
                 println!("ok");
@@ -138,4 +138,3 @@ impl AprsServerConnection {
     //     self.line_listener_fn = Some(Box::new(handler));
     // }
 }
-

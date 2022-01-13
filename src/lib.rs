@@ -6,10 +6,13 @@ use std::str;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+mod configuration;
+mod aprs_server_connection;
+pub mod data_structures;
 
-use crate::aprs_server_connection::AprsServerConnection;
 use crate::configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
-use crate::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
+use self::aprs_server_connection::AprsServerConnection;
+use self::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
 
 
 //#[derive(Clone)]
