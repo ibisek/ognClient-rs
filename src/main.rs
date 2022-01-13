@@ -33,8 +33,8 @@ impl AircraftBeaconListener {
 
 impl Observer<AircraftBeacon> for AircraftBeaconListener {
     fn notify(&mut self, beacon: AircraftBeacon) {
-        // println!("beacon: {}", beacon.to_json_str());
         self.i += 1;
+        // println!("beacon: #[{:06}] {}", self.i, beacon.to_json_str());
         // println!("ABL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
 
         if beacon.addr_type == AddressType::Ogn {
@@ -48,9 +48,13 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
         } 
 
         if self.time.elapsed().unwrap().as_secs() >= 60 {
-            println!("[INFO] Beacon rate: {}/min, {} queued.", 
+            let num_ogn = self.ogn_q.lock().unwrap().size();
+            let num_icao = self.icao_q.lock().unwrap().size();
+            let num_flarm = self.flarm_q.lock().unwrap().size();
+            println!("[INFO] Beacon rate: {}/min, {} queued (O {} / I {} / F {})", 
                 self.i, 
-                self.ogn_q.lock().unwrap().size() + self.icao_q.lock().unwrap().size() +self.flarm_q.lock().unwrap().size(),
+                num_ogn + num_icao + num_flarm,
+                num_ogn, num_icao, num_flarm
             );
             
             self.i = 0;
