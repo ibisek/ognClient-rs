@@ -5,6 +5,7 @@ use std::io::{Write, BufReader, LineWriter, Result};
 use std::net::TcpStream;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::SystemTime;
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
 use crate::data_structures::Observer;
@@ -21,6 +22,7 @@ pub struct AprsServerConnection {
     // pub line_listener: Option<Box<dyn Observer<String>>>,
     pub line_listener: Option<Rc<RefCell<dyn Observer<String>>>>,
     // pub line_listener_fn: Option<Box<dyn Fn(String)>>,
+    last_keepalive_time: SystemTime,
 }
 
 impl AprsServerConnection {
@@ -35,6 +37,7 @@ impl AprsServerConnection {
             // line_listeners: Vec::new(),
             line_listener: None,
             // line_listener_fn: None,
+            last_keepalive_time: SystemTime::now(),
         })
     }
 
@@ -97,6 +100,8 @@ impl AprsServerConnection {
         // self.notify_line_listeners(line.clone());
         self.notify_line_listener(line.clone());
 
+        self.send_keepalive_msg();
+
         Some(line)
     }
 
@@ -116,6 +121,13 @@ impl AprsServerConnection {
         // }
     }   
 
+    /// Sends a generic comment/mesage into the socket stream to keep the connection alive.
+    fn send_keepalive_msg(&mut self) {
+        if self.last_keepalive_time.elapsed().unwrap().as_secs() >= 5*60 {  // 5 min interval
+            self.write(&"#keepalive").unwrap();
+            self.last_keepalive_time = SystemTime::now();
+        }
+    }
 
     // pub fn add_line_listener(&mut self, listener: Box<dyn Observer<String>>) {
     // // pub fn add_line_listener(&mut self, listener: &'static impl Observer<String>) {
