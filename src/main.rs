@@ -5,9 +5,11 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::SystemTime;
 
-
 use ogn_client::data_structures::{AircraftBeacon, Observer, AddressType};
 use ogn_client::OgnClient;
+
+use ogn_client::utils::now;
+
 
 struct AircraftBeaconListener {
     i: u32,
@@ -51,7 +53,8 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
             let num_ogn = self.ogn_q.lock().unwrap().size();
             let num_icao = self.icao_q.lock().unwrap().size();
             let num_flarm = self.flarm_q.lock().unwrap().size();
-            println!("[INFO] Beacon rate: {}/min, {} queued (O {} / I {} / F {})", 
+            println!("{} [INFO] Beacon rate: {}/min, {} queued (O {} / I {} / F {})", 
+                now(),
                 self.i, 
                 num_ogn + num_icao + num_flarm,
                 num_ogn, num_icao, num_flarm

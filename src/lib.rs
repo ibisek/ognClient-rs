@@ -6,6 +6,7 @@ use std::str;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+pub mod utils;
 mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
