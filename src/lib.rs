@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub mod utils;
+use crate::utils::now;
 mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
@@ -53,6 +54,8 @@ impl MyLineListener {
             static ref SUPPORTED_BEACONS: Vec<String> =
                 vec!["OGN".to_string(), "FLR".to_string(), "ICA".to_string()];
         }
+
+        println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(&prefix) {
             return None;
