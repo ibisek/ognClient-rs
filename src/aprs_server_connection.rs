@@ -1,8 +1,8 @@
 
-use std::{thread, time};
+use std::{thread, time, time::Duration};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
-use std::net::TcpStream;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::SystemTime;
@@ -22,7 +22,7 @@ pub struct AprsServerConnection {
     // pub line_listener: Option<Box<dyn Observer<String>>>,
     pub line_listener: Option<Rc<RefCell<dyn Observer<String>>>>,
     // pub line_listener_fn: Option<Box<dyn Fn(String)>>,
-    last_keepalive_time: SystemTime,
+    last_keepalive_ts: SystemTime,
 }
 
 impl AprsServerConnection {
@@ -37,27 +37,27 @@ impl AprsServerConnection {
             // line_listeners: Vec::new(),
             line_listener: None,
             // line_listener_fn: None,
-            last_keepalive_time: SystemTime::now(),
+            last_keepalive_ts: SystemTime::now(),
         })
     }
 
     pub fn connect(&mut self) {
-    print!("Connecting.. ");
+        print!("Connecting.. ");
         let stream = match TcpStream::connect(self.address.clone()) {
             Ok(stream) => {
                 println!("ok");
+                // stream.set_nonblocking(true).expect("[ERROR] set_nonblocking call failed");
+                stream.set_read_timeout(Some(Duration::new(10, 0))).expect("[ERROR] set_read_timeout call failed");
                 self.next_reconnect_delay = 1;    // [s]
                 stream
             }
             Err(_) => {
-                println!("again in {} s", self.next_reconnect_delay);
+                println!("again in {}s", self.next_reconnect_delay);
                 thread::sleep(time::Duration::from_millis(self.next_reconnect_delay*1000));
                 self.next_reconnect_delay *= 2;
                 return
             }
         };
-
-        // stream.set_nonblocking(true).expect("set_nonblocking call failed");
 
         thread::sleep(time::Duration::from_millis(DELAY_MS));   // give the server some time to respond
 
@@ -86,9 +86,14 @@ impl AprsServerConnection {
     pub fn read(&mut self) -> Option<String> {
         let mut line = String::new();
 
-        let num_read = match self.reader.as_mut().unwrap().read_line(&mut line) {
-            Ok(val) => val,
-            Err(_) => 0,
+        let num_read = match self.reader.as_mut() {
+            Some(reader) => {
+                match reader.read_line(&mut line) {
+                    Ok(val) => val,
+                    Err(_) => 0,
+                }
+            },
+            None => 0,
         };
 
         if num_read == 0 {
@@ -97,10 +102,12 @@ impl AprsServerConnection {
         }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
-        // self.notify_line_listeners(line.clone());
-        self.notify_line_listener(line.clone());
+        if line.len() > 0 {
+            // self.notify_line_listeners(line.clone());
+            self.notify_line_listener(line.clone());
+        }
 
-        self.send_keepalive_msg();
+        // self.send_keepalive_msg();
 
         Some(line)
     }
@@ -123,9 +130,9 @@ impl AprsServerConnection {
 
     /// Sends a generic comment/mesage into the socket stream to keep the connection alive.
     fn send_keepalive_msg(&mut self) {
-        if self.last_keepalive_time.elapsed().unwrap().as_secs() >= 5*60 {  // 5 min interval
+        if self.last_keepalive_ts.elapsed().unwrap().as_secs() >= 2*60 {  // 2 min interval
             self.write(&"#keepalive").unwrap();
-            self.last_keepalive_time = SystemTime::now();
+            self.last_keepalive_ts = SystemTime::now();
         }
     }
 
