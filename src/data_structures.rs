@@ -93,6 +93,15 @@ impl AddressType {
             AddressType::Ogn => String::from("OGN (3)"),
         }
     }
+
+    pub fn as_long_str(&self) -> String {
+        match *self {
+            AddressType::Unknown => String::from("UNK"),
+            AddressType::Icao => String::from("ICA"),
+            AddressType::Flarm => String::from("FLR"),
+            AddressType::Ogn => String::from("OGN"),
+        }
+    }
 }
 
 impl fmt::Display for AddressType {
