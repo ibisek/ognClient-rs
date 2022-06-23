@@ -55,7 +55,7 @@ impl MyLineListener {
                 vec!["OGN".to_string(), "FLR".to_string(), "ICA".to_string()];
         }
 
-        println!("{} [DEBUG] line: {}", now(), line);
+        // println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(&prefix) {
             return None;
