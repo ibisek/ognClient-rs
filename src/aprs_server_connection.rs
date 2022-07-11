@@ -6,6 +6,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::SystemTime;
+use std::io::ErrorKind::ConnectionReset;
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
 use crate::data_structures::Observer;
@@ -90,16 +91,24 @@ impl AprsServerConnection {
             Some(reader) => {
                 match reader.read_line(&mut line) {
                     Ok(val) => val,
-                    Err(_) => 0,
+                    Err(e) => { // e.g. 'stream did not contain valid UTF-8' / 'Connection reset by peer (os error 104)'
+                        println!("[ERROR] when reading from stream: '{:?}' - {}", e.kind(), e);
+                        // @see https://doc.rust-lang.org/stable/std/io/enum.ErrorKind.html
+                        // kind: InvalidData / 
+                        // if e.kind() == ConnectionReset {
+                        //     println!("Reconnect?");
+                        // }
+                        0
+                    },
                 }
             },
             None => 0,
         };
 
-        if num_read == 0 {
-            self.connect();
-            return None;
-        }
+        // if num_read == 0 {
+        //     self.connect();
+        //     return None;
+        // }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
         if line.len() > 0 {
