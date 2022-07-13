@@ -1,4 +1,5 @@
 
+use std::borrow::Borrow;
 use std::{thread, time, time::Duration};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
@@ -64,7 +65,8 @@ impl AprsServerConnection {
 
         // both BufReader and LineWriter need to own a stream. This can be done by cloning the stream to simulate splitting Tx & Rx with try_clone()
         self.writer = Some(LineWriter::new(stream.try_clone().unwrap()));
-        self.reader = Some(BufReader::new(stream));
+        // self.reader = Some(BufReader::new(stream));
+        self.reader = Some(BufReader::with_capacity(1024*1024, stream));
 
         let handshake = format!("user {} pass -1 vers rustClient 0.0.1 filter {}", self.username, self.aprs_filter);
         self.write(&handshake).unwrap();
@@ -86,6 +88,7 @@ impl AprsServerConnection {
 
     pub fn read(&mut self) -> Option<String> {
         let mut line = String::new();
+        // println!("R: {:?}", self.reader);
 
         let num_read = match self.reader.as_mut() {
             Some(reader) => {
@@ -93,22 +96,16 @@ impl AprsServerConnection {
                     Ok(val) => val,
                     Err(e) => { // e.g. 'stream did not contain valid UTF-8' / 'Connection reset by peer (os error 104)'
                         println!("[ERROR] when reading from stream: '{:?}' - {}", e.kind(), e);
-                        // @see https://doc.rust-lang.org/stable/std/io/enum.ErrorKind.html
-                        // kind: InvalidData / 
-                        // if e.kind() == ConnectionReset {
-                        //     println!("Reconnect?");
-                        // }
+                        if e.kind() == ConnectionReset {    // @see https://doc.rust-lang.org/stable/std/io/enum.ErrorKind.html
+                            self.connect();
+                            return None
+                        }
                         0
                     },
                 }
             },
             None => 0,
         };
-
-        // if num_read == 0 {
-        //     self.connect();
-        //     return None;
-        // }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
         if line.len() > 0 {
