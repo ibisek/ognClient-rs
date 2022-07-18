@@ -1,5 +1,5 @@
 
-use std::borrow::Borrow;
+use std::error::Error;
 use std::{thread, time, time::Duration};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
@@ -7,7 +7,8 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::SystemTime;
-use std::io::ErrorKind::ConnectionReset;
+use std::io::ErrorKind::{ConnectionReset, InvalidData};
+use log::{info, error, warn};
 
 use crate::configuration::{DELAY_MS, DEFAULT_APRS_FILTER};
 use crate::data_structures::Observer;
@@ -44,17 +45,17 @@ impl AprsServerConnection {
     }
 
     pub fn connect(&mut self) {
-        print!("Connecting.. ");
+        info!("Connecting.. ");
         let stream = match TcpStream::connect(self.address.clone()) {
             Ok(stream) => {
-                println!("ok");
+                info!("Connection success.");
                 // stream.set_nonblocking(true).expect("[ERROR] set_nonblocking call failed");
                 stream.set_read_timeout(Some(Duration::new(10, 0))).expect("[ERROR] set_read_timeout call failed");
                 self.next_reconnect_delay = 1;    // [s]
                 stream
             }
             Err(_) => {
-                println!("again in {}s", self.next_reconnect_delay);
+                error!("Reconnecting again in {}s", self.next_reconnect_delay);
                 thread::sleep(time::Duration::from_millis(self.next_reconnect_delay*1000));
                 self.next_reconnect_delay *= 2;
                 return
@@ -88,17 +89,22 @@ impl AprsServerConnection {
 
     pub fn read(&mut self) -> Option<String> {
         let mut line = String::new();
-        // println!("R: {:?}", self.reader);
 
+        let mut eof = false;
         let num_read = match self.reader.as_mut() {
             Some(reader) => {
                 match reader.read_line(&mut line) {
-                    Ok(val) => val,
+                    Ok(val) => {
+                        eof = val == 0; // Ok(0) = EOF!
+                        val
+                    },
                     Err(e) => { // e.g. 'stream did not contain valid UTF-8' / 'Connection reset by peer (os error 104)'
-                        println!("[ERROR] when reading from stream: '{:?}' - {}", e.kind(), e);
+                        if e.kind() != InvalidData {
+                            error!("when reading from stream: '{:?}' - {}", e.kind(), e);
+                        }
                         if e.kind() == ConnectionReset {    // @see https://doc.rust-lang.org/stable/std/io/enum.ErrorKind.html
-                            self.connect();
-                            return None
+                            warn!("Got connection reset: '{:?}' - {}", e.kind(), e);
+                            eof = true;
                         }
                         0
                     },
@@ -106,6 +112,12 @@ impl AprsServerConnection {
             },
             None => 0,
         };
+
+        if eof {
+            warn!("xxx EOF xxx");
+            self.connect();
+            return None
+        }
 
         let line = String::from(line.trim()); // Remove the trailing "\n"
         if line.len() > 0 {

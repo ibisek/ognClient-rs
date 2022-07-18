@@ -5,6 +5,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::SystemTime;
 
+use log::{info};
+use simplelog::{ConfigBuilder, LevelFilter, SimpleLogger};
+
 use ogn_client::data_structures::{AircraftBeacon, Observer, AddressType};
 use ogn_client::OgnClient;
 
@@ -59,7 +62,7 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
                 num_ogn + num_icao + num_flarm,
                 num_ogn, num_icao, num_flarm
             );
-            
+
             self.i = 0;
             self.time = SystemTime::now();
         }
@@ -68,6 +71,13 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
 
 
 fn main() -> std::io::Result<()> {
+    let config = ConfigBuilder::new()
+        .set_target_level(LevelFilter::Info)
+        .build();
+    let _ = SimpleLogger::init(LevelFilter::Info, config);
+    print!("\n\n## OGN CLIENT ##\n\n");
+
+
     let username = "blume";
     let lat = 49.1234;
     let lon = 16.4567;
@@ -89,9 +99,9 @@ fn main() -> std::io::Result<()> {
     //     println!("_FN: {} {}", beacon.addr_type, beacon.addr);
     // });
     
-    println!("Entering the loop..");
+    info!("Entering the loop..");
     client.do_loop();
 
-    println!("KOHEU.");
+    info!("KOHEU.");
     Ok(())
 }
