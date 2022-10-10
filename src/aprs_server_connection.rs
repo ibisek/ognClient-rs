@@ -101,6 +101,7 @@ impl AprsServerConnection {
                     Err(e) => { // e.g. 'stream did not contain valid UTF-8' / 'Connection reset by peer (os error 104)'
                         if e.kind() != InvalidData {
                             error!("when reading from stream: '{:?}' - {}", e.kind(), e);
+                            eof = true;
                         }
                         if e.kind() == ConnectionReset {    // @see https://doc.rust-lang.org/stable/std/io/enum.ErrorKind.html
                             warn!("Got connection reset: '{:?}' - {}", e.kind(), e);
