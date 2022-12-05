@@ -58,6 +58,12 @@ impl AircraftBeacon {
     }
 }
 
+impl fmt::Display for AircraftBeacon {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "#AircraftBeacon: {} | {} {} | lat:{:.4}; lon:{:.4}; alt:{:.1}m | gs:{:.1} km/h", self.ts, self.prefix, self.addr, self.lat, self.lon, self.altitude, self.speed)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum AddressType {
     Unknown,
