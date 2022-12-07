@@ -108,6 +108,15 @@ impl AddressType {
             AddressType::Ogn => String::from("OGN"),
         }
     }
+
+    pub fn as_short_str(&self) -> String {
+        match *self {
+            AddressType::Unknown => String::from("X"),
+            AddressType::Icao => String::from("I"),
+            AddressType::Flarm => String::from("F"),
+            AddressType::Ogn => String::from("O"),
+        }
+    }
 }
 
 impl fmt::Display for AddressType {
@@ -178,6 +187,12 @@ impl AircraftType {
             AircraftType::Reserved => 14,
             AircraftType::Obstacle => 15,
         }
+    }
+}
+
+impl PartialEq for AircraftType {
+    fn eq(&self, other: &Self) -> bool {
+        self.value() == other.value()
     }
 }
 
