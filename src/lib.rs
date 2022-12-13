@@ -111,7 +111,7 @@ impl MyLineListener {
         let stealth: bool = if flags & 0b1000_0000 > 0 { true } else { false };
         let do_not_track: bool = if flags & 0b0100_0000 > 0 { true } else { false };
         let aircraft_type: AircraftType = AircraftType::from(flags >> 2 & 0x0F);
-        let address_type: AddressType = AddressType::from(flags & 0b0000_0011);
+        let address_type: AddressType = AddressType::SafeSky;
 
         let vertical_speed = vertical_speed * 0.00508; // ft per min -> meters/s
         // convert altitude in FL to meters:
