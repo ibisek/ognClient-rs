@@ -70,6 +70,7 @@ pub enum AddressType {
     Icao,
     Flarm,
     Ogn,
+    SafeSky,
 }
 
 impl AddressType {
@@ -78,6 +79,7 @@ impl AddressType {
             1 => AddressType::Icao,
             2 => AddressType::Flarm,
             3 => AddressType::Ogn,
+            4 => AddressType::SafeSky,
             _ => AddressType::Unknown,
         }
     }
@@ -88,6 +90,7 @@ impl AddressType {
             AddressType::Icao => 1,
             AddressType::Flarm => 2,
             AddressType::Ogn => 3,
+            AddressType::SafeSky => 4,
         }
     }
 
@@ -97,6 +100,7 @@ impl AddressType {
             AddressType::Icao => String::from("ICA (1)"),
             AddressType::Flarm => String::from("FLR (2)"),
             AddressType::Ogn => String::from("OGN (3)"),
+            AddressType::SafeSky => String::from("SKY (4)"),
         }
     }
 
@@ -106,6 +110,7 @@ impl AddressType {
             AddressType::Icao => String::from("ICA"),
             AddressType::Flarm => String::from("FLR"),
             AddressType::Ogn => String::from("OGN"),
+            AddressType::SafeSky => String::from("SKY"),
         }
     }
 
@@ -115,6 +120,7 @@ impl AddressType {
             AddressType::Icao => String::from("I"),
             AddressType::Flarm => String::from("F"),
             AddressType::Ogn => String::from("O"),
+            AddressType::SafeSky => String::from("S"),
         }
     }
 }

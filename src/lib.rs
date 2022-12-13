@@ -12,7 +12,7 @@ mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
 
-use crate::configuration::{AIRCRAFT_REGEX, SERVER_ADDR};
+use crate::configuration::{AIRCRAFT_REGEX, SKY_REGEX, SERVER_ADDR};
 use self::aprs_server_connection::AprsServerConnection;
 use self::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
 
@@ -50,15 +50,96 @@ impl MyLineListener {
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
         lazy_static! {
-            static ref AIRCRAFT_RE: Regex = Regex::new(AIRCRAFT_REGEX).unwrap();
             static ref SUPPORTED_BEACONS: Vec<String> =
-                vec!["OGN".to_string(), "FLR".to_string(), "ICA".to_string()];
+                vec!["OGN".to_string(), "FLR".to_string(), "ICA".to_string(), "SKY".to_string()];
         }
 
         // println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(&prefix) {
             return None;
+        }
+
+        let mut beacon = None;
+        if prefix == "SKY" {
+            beacon = MyLineListener::parse_sky_beacon(line);
+        } else {
+            beacon = MyLineListener::parse_aircraft_beacon(line);
+        }
+
+        beacon
+    }
+
+    fn parse_sky_beacon(line: &str) -> Option<AircraftBeacon> {
+        lazy_static! {
+            static ref SKY_RE: Regex = Regex::new(SKY_REGEX).unwrap();
+        }
+
+        let caps = match SKY_RE.captures(line) {
+            Some(caps) => caps,
+            None => return None,
+        };
+        // println!("CAPS: {:?}", caps);
+
+        let prefix = caps.get(1).unwrap().as_str().to_string();
+        // let addr1 = caps.get(2).unwrap().as_str();
+        let rx_time = caps.get(3).unwrap().as_str();
+        let lat = caps.get(4).unwrap().as_str();
+        let lat_letter = caps.get(5).unwrap().as_str();
+        let lon = caps.get(6).unwrap().as_str();
+        let lon_letter = caps.get(7).unwrap().as_str();
+        // let aprs_symbol = caps.get(8).unwrap().as_str();
+        let course: u64 = caps.get(9).unwrap().as_str().parse().unwrap();
+        let speed: u64 = caps.get(10).unwrap().as_str().parse().unwrap(); // [kt]
+        let altitude: f64 = caps.get(11).unwrap().as_str().parse().unwrap(); // [ft]
+        let flags: u8 = u8::from_str_radix(caps.get(12).unwrap().as_str(), 16).unwrap();
+        let addr2 = caps.get(13).unwrap().as_str().to_string();
+        let vertical_speed: f64 = caps.get(14).unwrap().as_str().parse().unwrap(); // [fpm]
+
+        let ts = Self::rx_time_to_utc_ts(rx_time); // convert rx_time to UTC ts
+        // convert latitude to number:
+        let signum = if lat_letter == "N" { 1.0 } else { -1.0 };
+        let pos = lat.find('.').unwrap();   // 5140.77 -> 51 40.77
+        let lat = signum * lat[0..(pos-2)].parse::<f64>().unwrap() + lat[(pos-2)..].parse::<f64>().unwrap() / 60.0;
+        // convert longitude to number:
+        let signum = if lon_letter == "E" { 1.0 } else { -1.0 };
+        let pos = lon.find('.').unwrap();   // 12345.67 -> 123 45.67
+        let lon = signum * lon[0..(pos-2)].parse::<f64>().unwrap() + lon[(pos-2)..].parse::<f64>().unwrap() / 60.0;
+
+        let speed = (speed as f64 * 1.852).round() as u32; // [kt] -> [km/h]
+        // parse flags & aircraft type  STxxxxaa
+        let stealth: bool = if flags & 0b1000_0000 > 0 { true } else { false };
+        let do_not_track: bool = if flags & 0b0100_0000 > 0 { true } else { false };
+        let aircraft_type: AircraftType = AircraftType::from(flags >> 2 & 0x0F);
+        let address_type: AddressType = AddressType::from(flags & 0b0000_0011);
+
+        let vertical_speed = vertical_speed * 0.00508; // ft per min -> meters/s
+        // convert altitude in FL to meters:
+        let altitude = (altitude * 0.3048).round() as i32;
+
+        let beacon = AircraftBeacon::new(
+            ts,
+            prefix,
+            addr2,
+            address_type,
+            lat,
+            lon,
+            altitude,
+            course,
+            speed,
+            vertical_speed,
+            0.0,  // not known from the line 
+            stealth,
+            do_not_track,
+            aircraft_type,
+        );
+
+        Some(beacon)
+    }
+
+    fn parse_aircraft_beacon(line: &str) -> Option<AircraftBeacon> {
+        lazy_static! {
+            static ref AIRCRAFT_RE: Regex = Regex::new(AIRCRAFT_REGEX).unwrap();
         }
 
         let caps = match AIRCRAFT_RE.captures(line) {
@@ -132,6 +213,7 @@ impl MyLineListener {
             do_not_track,
             aircraft_type,
         );
+
         Some(beacon)
     }
 

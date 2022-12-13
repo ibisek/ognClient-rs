@@ -115,7 +115,6 @@ impl AprsServerConnection {
         };
 
         if eof {
-            warn!("xxx EOF xxx");
             self.connect();
             return None
         }
