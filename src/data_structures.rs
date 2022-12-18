@@ -84,6 +84,17 @@ impl AddressType {
         }
     }
 
+    pub fn from_short_str(value: String) -> AddressType {
+        let char: &str = &value;
+        match char {
+            "I" => AddressType::Icao,
+            "F" => AddressType::Flarm,
+            "O" => AddressType::Ogn,
+            "S" => AddressType::SafeSky,
+            _ => AddressType::Unknown,
+        }
+    }
+
     pub fn value(&self) -> u8 {
         match *self {
             AddressType::Unknown => 0,
