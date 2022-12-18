@@ -17,6 +17,7 @@ pub struct AircraftBeacon {
     pub lat: f64,
     pub lon: f64,
     pub altitude: i32,
+    pub agl: i32,
     pub course:u64,
     pub speed:u32,
     pub climb_rate: f64,
@@ -28,11 +29,11 @@ pub struct AircraftBeacon {
 
 impl AircraftBeacon {
     pub fn new( ts: u64, prefix: String, addr: String, addr_type: AddressType,
-        lat: f64, lon: f64, altitude: i32,
+        lat: f64, lon: f64, altitude: i32, agl: i32,
         course:u64, speed:u32, climb_rate: f64, turn_rate: f64, 
         stealth: bool, do_not_track: bool, aircraft_type: AircraftType) -> Self {
 
-        Self {ts, prefix, addr, addr_type, lat, lon, altitude, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type}
+        Self {ts, prefix, addr, addr_type, lat, lon, altitude, agl, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type}
     }
 
     pub fn to_json_str(&self) -> String {
@@ -45,6 +46,7 @@ impl AircraftBeacon {
             "lat": format!("{:.5}", self.lat),
             "lon": format!("{:.5}", self.lon),
             "alt": self.altitude,
+            "agl": self.agl,
             "course":  self.course,
             "speed": self.speed,
             "vert_speed": format!("{:.1}", self.climb_rate),
@@ -55,6 +57,10 @@ impl AircraftBeacon {
         });
         
         js.to_string()
+    }
+
+    pub fn set_agl(&mut self, agl: i32) {
+        self.agl = agl;
     }
 }
 
