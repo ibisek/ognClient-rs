@@ -12,7 +12,7 @@ mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
 
-use crate::configuration::{AIRCRAFT_REGEX1, AIRCRAFT_REGEX2, SKY_REGEX, SERVER_ADDR};
+use crate::configuration::{AIRCRAFT_REGEX1, AIRCRAFT_REGEX2, AIRCRAFT_REGEX3, AIRCRAFT_REGEX4, SKY_REGEX, SERVER_ADDR};
 use self::aprs_server_connection::AprsServerConnection;
 use self::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
 
@@ -23,6 +23,8 @@ pub struct MyLineListener {
     beacon_listener_fn: Option<Box<dyn Fn(AircraftBeacon)>>,
     aircraft_re1: Regex,
     aircraft_re2: Regex,
+    aircraft_re3: Regex,
+    aircraft_re4: Regex,
 }
 
 impl MyLineListener {
@@ -32,6 +34,8 @@ impl MyLineListener {
             beacon_listener_fn: None,
             aircraft_re1: Regex::new(AIRCRAFT_REGEX1).unwrap(),
             aircraft_re2: Regex::new(AIRCRAFT_REGEX2).unwrap(),
+            aircraft_re3: Regex::new(AIRCRAFT_REGEX3).unwrap(),
+            aircraft_re4: Regex::new(AIRCRAFT_REGEX4).unwrap(),
         }
     }
 
@@ -83,7 +87,10 @@ impl MyLineListener {
 
         let caps = match SKY_RE.captures(line) {
             Some(caps) => caps,
-            None => return None,
+            None => {
+                println!("[INFO] Rejected line: {}", line);
+                return None
+            }
         };
         // println!("CAPS: {:?}", caps);
 
@@ -146,11 +153,23 @@ impl MyLineListener {
 
     fn parse_aircraft_beacon(&self, line: &str) -> Option<AircraftBeacon> {
         // there are two very similar lines where one does not contain the 'rot' part:
-        let mut regex = &self.aircraft_re1;
+        let mut regex = &self.aircraft_re4;
+        let mut regex_with_id = false;
+        let mut regex_with_fpm = false;
         let mut regex_with_rot = false;
         if line.contains("rot") { 
-            regex = &self.aircraft_re2;
+            regex = &self.aircraft_re1;
             regex_with_rot = true;
+            regex_with_fpm = true;
+            regex_with_id = true;
+
+        } else if line.contains("fpm") {
+            regex = &self.aircraft_re2;
+            regex_with_fpm = true;
+            regex_with_id = true;
+        } else if line.contains("id") {
+            regex = &self.aircraft_re3;
+            regex_with_id = true;
          }
 
         let caps = match regex.captures(line) {
@@ -165,7 +184,7 @@ impl MyLineListener {
         // println!("CAPS: {:?}", caps);
 
         let prefix = caps.get(1).unwrap().as_str().to_string();
-        // let addr1 = caps.get(2).unwrap().as_str();
+        let addr1 = caps.get(2).unwrap().as_str().to_string();
         let rx_time = caps.get(3).unwrap().as_str();
         let lat = caps.get(4).unwrap().as_str();
         let lat_letter = caps.get(5).unwrap().as_str();
@@ -176,8 +195,8 @@ impl MyLineListener {
         let speed: u64 = caps.get(10).unwrap().as_str().parse().unwrap(); // [kt]
         let altitude: f64 = caps.get(11).unwrap().as_str().parse().unwrap(); // [ft]
         let flags: u8 = u8::from_str_radix(caps.get(12).unwrap().as_str(), 16).unwrap();
-        let addr2 = caps.get(13).unwrap().as_str().to_string();
-        let vertical_speed: f64 = caps.get(14).unwrap().as_str().parse().unwrap(); // [fpm]
+        let addr2 = if regex_with_id {caps.get(13).unwrap().as_str().to_string()} else {"".to_string()};
+        let vertical_speed: f64 = if regex_with_fpm {caps.get(14).unwrap().as_str().parse().unwrap()} else {0_f64}; // [fpm]
         let angular_speed: f64 = if regex_with_rot {caps.get(15).unwrap().as_str().parse().unwrap()} else {0_f64};
         // let flight_level: f64 = caps.get(16).unwrap().as_str().parse().unwrap();     // [flight level ~ hundrets of ft]
         // let re = Regex::new(AIRCRAFT_REGEX_ALT).unwrap();
@@ -213,7 +232,7 @@ impl MyLineListener {
         let beacon = AircraftBeacon::new(
             ts,
             prefix,
-            addr2,
+            addr1,
             address_type,
             lat,
             lon,
