@@ -1,3 +1,5 @@
 APRS protocol beacons description:
     https://github.com/glidernet/ogn-aprs-protocol/blob/master/aprsmsgs.txt
 
+APRS filter:
+    https://www.aprs-is.net/javAPRSFilter.aspx
