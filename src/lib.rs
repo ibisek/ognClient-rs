@@ -149,7 +149,7 @@ impl MyLineListener {
                 // println!("[INFO] Accepted line: {}", line);
                 caps
             } None => {
-                println!("[INFO] Rejected line: {}", line);
+                // println!("[INFO] Rejected line: {}", line);
                 return None
             }
         };
