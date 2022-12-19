@@ -88,7 +88,7 @@ impl MyLineListener {
         let caps = match SKY_RE.captures(line) {
             Some(caps) => caps,
             None => {
-                println!("[INFO] Rejected line: {}", line);
+                // println!("[INFO] SKY rejected line: {}", line);
                 return None
             }
         };
@@ -177,7 +177,7 @@ impl MyLineListener {
                 // println!("[INFO] Accepted line: {}", line);
                 caps
             } None => {
-                // println!("[INFO] Rejected line: {}", line);
+                // println!("[INFO] ALL rejected line: {}", line);
                 return None
             }
         };
