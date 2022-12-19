@@ -57,6 +57,7 @@ impl MyLineListener {
         // println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(&prefix) {
+            // println!("Unsupported beacon: {}", line);
             return None;
         }
 
@@ -144,9 +145,11 @@ impl MyLineListener {
         }
 
         let caps = match AIRCRAFT_RE.captures(line) {
-            Some(caps) => caps,
-            None => {
-                // println!("[INFO] ignored line: {}", line);
+            Some(caps) => {
+                // println!("[INFO] Accepted line: {}", line);
+                caps
+            } None => {
+                println!("[INFO] Rejected line: {}", line);
                 return None
             }
         };
