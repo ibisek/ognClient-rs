@@ -1,0 +1,3 @@
+APRS protocol beacons description:
+    https://github.com/glidernet/ogn-aprs-protocol/blob/master/aprsmsgs.txt
+
