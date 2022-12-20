@@ -39,7 +39,7 @@ impl MyLineListener {
         }
     }
 
-    fn rx_time_to_utc_ts(rx_time: &str) -> u64 {
+    fn rx_time_to_utc_ts(rx_time: &str) -> i64 {
         let hour = rx_time[0..2].parse::<u32>().unwrap();
         let min = rx_time[2..4].parse::<u32>().unwrap();
         let sec = rx_time[4..].parse::<u32>().unwrap();
@@ -54,7 +54,7 @@ impl MyLineListener {
             .unwrap()
             .with_nanosecond(0)
             .unwrap();
-        utc.timestamp() as u64
+        utc.timestamp() as i64
     }
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
