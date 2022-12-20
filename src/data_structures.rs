@@ -10,7 +10,7 @@ use serde_json::json;
 // #[derive(Serialize, Deserialize)]
 #[derive(Debug, Clone)]
 pub struct AircraftBeacon {
-    pub ts: u64,
+    pub ts: i64,
     pub prefix: String,
     pub addr: String,
     pub addr_type: AddressType,
@@ -28,7 +28,7 @@ pub struct AircraftBeacon {
 }
 
 impl AircraftBeacon {
-    pub fn new( ts: u64, prefix: String, addr: String, addr_type: AddressType,
+    pub fn new( ts: i64, prefix: String, addr: String, addr_type: AddressType,
         lat: f64, lon: f64, altitude: i32, agl: i32,
         course:u64, speed:u32, climb_rate: f64, turn_rate: f64, 
         stealth: bool, do_not_track: bool, aircraft_type: AircraftType) -> Self {
