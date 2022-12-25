@@ -1,13 +1,13 @@
 use chrono::prelude::*;
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Regex, Match, Captures};
 use std::io::Result;
 use std::str;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub mod utils;
-use crate::utils::now;
+use crate::utils::{now, from_caps};
 mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
@@ -39,6 +39,7 @@ impl MyLineListener {
         }
     }
 
+    //rx_time: HHMMSS
     fn rx_time_to_utc_ts(rx_time: &str) -> i64 {
         let hour = rx_time[0..2].parse::<u32>().unwrap();
         let min = rx_time[2..4].parse::<u32>().unwrap();
@@ -94,20 +95,20 @@ impl MyLineListener {
         };
         // println!("CAPS: {:?}", caps);
 
-        let prefix = caps.get(1).unwrap().as_str().to_string();
-        // let addr1 = caps.get(2).unwrap().as_str();
-        let rx_time = caps.get(3).unwrap().as_str();
-        let lat = caps.get(4).unwrap().as_str();
-        let lat_letter = caps.get(5).unwrap().as_str();
-        let lon = caps.get(6).unwrap().as_str();
-        let lon_letter = caps.get(7).unwrap().as_str();
-        // let aprs_symbol = caps.get(8).unwrap().as_str();
-        let course: u64 = caps.get(9).unwrap().as_str().parse().unwrap();
-        let speed: u64 = caps.get(10).unwrap().as_str().parse().unwrap(); // [kt]
-        let altitude: f64 = caps.get(11).unwrap().as_str().parse().unwrap(); // [ft]
-        let flags: u8 = u8::from_str_radix(caps.get(12).unwrap().as_str(), 16).unwrap();
-        let addr2 = caps.get(13).unwrap().as_str().to_string();
-        let vertical_speed: f64 = caps.get(14).unwrap().as_str().parse().unwrap(); // [fpm]
+        let prefix = from_caps(&caps, 1, "").to_string();
+        // let addr1 = from_caps(&caps, 2, "");
+        let rx_time = from_caps(&caps, 3, "000000");
+        let lat = from_caps(&caps, 4, "0");
+        let lat_letter = from_caps(&caps, 5, "N");
+        let lon = from_caps(&caps, 6, "0");
+        let lon_letter = from_caps(&caps, 7, "E");
+        // let aprs_symbol = from_caps(&caps, 8, "");
+        let course: u64 = from_caps(&caps, 9, "0").parse().unwrap();
+        let speed: u64 = from_caps(&caps, 10, "0").parse().unwrap(); // [kt]
+        let altitude: f64 = from_caps(&caps, 11, "0").parse().unwrap(); // [ft]
+        let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap();
+        let addr2 = from_caps(&caps, 13, "0").to_string();
+        let vertical_speed: f64 = from_caps(&caps, 14, "0").parse().unwrap(); // [fpm]
 
         let ts = Self::rx_time_to_utc_ts(rx_time); // convert rx_time to UTC ts
         // convert latitude to number:
@@ -183,26 +184,26 @@ impl MyLineListener {
         };
         // println!("CAPS: {:?}", caps);
 
-        let prefix = caps.get(1).unwrap().as_str().to_string();
-        let addr1 = caps.get(2).unwrap().as_str().to_string();
-        let rx_time = caps.get(3).unwrap().as_str();
-        let lat = caps.get(4).unwrap().as_str();
-        let lat_letter = caps.get(5).unwrap().as_str();
-        let lon = caps.get(6).unwrap().as_str();
-        let lon_letter = caps.get(7).unwrap().as_str();
-        // let aprs_symbol = caps.get(8).unwrap().as_str();
-        let course: u64 = caps.get(9).unwrap().as_str().parse().unwrap();
-        let speed: u64 = caps.get(10).unwrap().as_str().parse().unwrap(); // [kt]
-        let altitude: f64 = caps.get(11).unwrap().as_str().parse().unwrap(); // [ft]
-        let flags: u8 = u8::from_str_radix(caps.get(12).unwrap().as_str(), 16).unwrap();
-        let addr2 = if regex_with_id {caps.get(13).unwrap().as_str().to_string()} else {"".to_string()};
-        let vertical_speed: f64 = if regex_with_fpm {caps.get(14).unwrap().as_str().parse().unwrap()} else {0_f64}; // [fpm]
-        let angular_speed: f64 = if regex_with_rot {caps.get(15).unwrap().as_str().parse().unwrap()} else {0_f64};
-        // let flight_level: f64 = caps.get(16).unwrap().as_str().parse().unwrap();     // [flight level ~ hundrets of ft]
+        let prefix = from_caps(&caps, 1, "").to_string();
+        let addr1 = from_caps(&caps, 2, "").to_string();
+        let rx_time = from_caps(&caps, 3, "000000");
+        let lat = from_caps(&caps, 4, "0");
+        let lat_letter = from_caps(&caps, 5, "N");
+        let lon = from_caps(&caps, 6, "0");
+        let lon_letter = from_caps(&caps, 7, "E");
+        // let aprs_symbol = from_caps(&caps, 8, "");
+        let course: u64 = from_caps(&caps, 9, "0").parse().unwrap();
+        let speed: u64 = from_caps(&caps, 10, "0").parse().unwrap(); // [kt]
+        let altitude: f64 = from_caps(&caps, 11, "0").parse().unwrap(); // [ft]
+        let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap();
+        let addr2 = if regex_with_id {from_caps(&caps, 13, "").to_string()} else {"".to_string()};
+        let vertical_speed: f64 = if regex_with_fpm {from_caps(&caps, 14, "0").parse().unwrap()} else {0_f64}; // [fpm]
+        let angular_speed: f64 = if regex_with_rot {from_caps(&caps, 15, "0").parse().unwrap()} else {0_f64};
+        // let flight_level: f64 = from_caps(&caps, 16, "0").parse().unwrap();     // [flight level ~ hundrets of ft]
         // let re = Regex::new(AIRCRAFT_REGEX_ALT).unwrap();
         // let flight_level: i32 = match re.captures(line) {
         //     Some(caps) => {
-        //         let fl: f64 = caps.get(1).unwrap().as_str().parse().unwrap();
+        //         let fl: f64 = from_caps(&caps, 1, "0").as_str().parse().unwrap();
         //         (fl * 100.0 * 0.3048).round() as i32  // [FL]->[m]
         //     },
         //     None => 0,
