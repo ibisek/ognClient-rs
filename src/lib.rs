@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub mod utils;
-use crate::utils::{now, from_caps};
+use crate::utils::{now, from_caps, from_caps_float, from_caps_int};
 mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
@@ -103,12 +103,12 @@ impl MyLineListener {
         let lon = from_caps(&caps, 6, "0");
         let lon_letter = from_caps(&caps, 7, "E");
         // let aprs_symbol = from_caps(&caps, 8, "");
-        let course: u64 = from_caps(&caps, 9, "0").parse().unwrap();
-        let speed: u64 = from_caps(&caps, 10, "0").parse().unwrap(); // [kt]
-        let altitude: f64 = from_caps(&caps, 11, "0").parse().unwrap(); // [ft]
+        let course: u64 = from_caps_int(&caps, 9, 0) as u64;
+        let speed: u64 = from_caps_int(&caps, 10, 0) as u64; // [kt]
+        let altitude: f64 = from_caps_float(&caps, 11, 0_f64); // [ft]
         let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap();
         let addr2 = from_caps(&caps, 13, "0").to_string();
-        let vertical_speed: f64 = from_caps(&caps, 14, "0").parse().unwrap(); // [fpm]
+        let vertical_speed: f64 = from_caps_float(&caps, 14, 0_f64); // [fpm]
 
         let ts = Self::rx_time_to_utc_ts(rx_time); // convert rx_time to UTC ts
         // convert latitude to number:
@@ -192,18 +192,18 @@ impl MyLineListener {
         let lon = from_caps(&caps, 6, "0");
         let lon_letter = from_caps(&caps, 7, "E");
         // let aprs_symbol = from_caps(&caps, 8, "");
-        let course: u64 = from_caps(&caps, 9, "0").parse().unwrap();
-        let speed: u64 = from_caps(&caps, 10, "0").parse().unwrap(); // [kt]
-        let altitude: f64 = from_caps(&caps, 11, "0").parse().unwrap(); // [ft]
+        let course: u64 = from_caps_int(&caps, 9, 0) as u64;
+        let speed: u64 = from_caps_int(&caps, 10, 0) as u64; // [kt]
+        let altitude: f64 = from_caps_float(&caps, 11, 0_f64); // [ft]
         let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap();
         let addr2 = if regex_with_id {from_caps(&caps, 13, "").to_string()} else {"".to_string()};
-        let vertical_speed: f64 = if regex_with_fpm {from_caps(&caps, 14, "0").parse().unwrap()} else {0_f64}; // [fpm]
-        let angular_speed: f64 = if regex_with_rot {from_caps(&caps, 15, "0").parse().unwrap()} else {0_f64};
-        // let flight_level: f64 = from_caps(&caps, 16, "0").parse().unwrap();     // [flight level ~ hundrets of ft]
+        let vertical_speed: f64 = if regex_with_fpm {from_caps_float(&caps, 14, 0_f64)} else {0_f64}; // [fpm]
+        let angular_speed: f64 = if regex_with_rot {from_caps_float(&caps, 15, 0_f64)} else {0_f64};
+        // let flight_level: f64 = from_caps_float(&caps, 16, 0_f64);     // [flight level ~ hundrets of ft]
         // let re = Regex::new(AIRCRAFT_REGEX_ALT).unwrap();
         // let flight_level: i32 = match re.captures(line) {
         //     Some(caps) => {
-        //         let fl: f64 = from_caps(&caps, 1, "0").as_str().parse().unwrap();
+        //         let fl: f64 = from_caps_float(&caps, 1, 0_f64);
         //         (fl * 100.0 * 0.3048).round() as i32  // [FL]->[m]
         //     },
         //     None => 0,
