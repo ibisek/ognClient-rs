@@ -284,6 +284,7 @@ impl Observer<String> for MyLineListener {
 }
 
 pub struct OgnClient {
+    do_run: bool,
     server: AprsServerConnection,
     line_listener: Rc<RefCell<MyLineListener>>,
 }
@@ -298,6 +299,7 @@ impl OgnClient {
         server.set_line_listener(Rc::clone(&line_listener));    // this finally clones the fucking reference, not the content!
 
         Ok(Self {
+            do_run: true,
             server: server,
             line_listener: line_listener,
         })
@@ -314,9 +316,13 @@ impl OgnClient {
     }
 
     pub fn do_loop(&mut self) {
-        loop {
+        while self.do_run {
             self.server.read();
         }
+    }
+
+    pub fn stop(&mut self) {
+        self.do_run = false;
     }
 
     pub fn set_beacon_listener(&mut self, listener: impl Observer<AircraftBeacon> + 'static) {
