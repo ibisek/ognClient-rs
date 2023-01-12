@@ -95,7 +95,6 @@ impl MyLineListener {
                 return None
             }
         };
-        // println!("CAPS: {:?}", caps);
 
         let prefix = from_caps(&caps, 1, "").to_string();
         // let addr1 = from_caps(&caps, 2, "");
@@ -108,7 +107,7 @@ impl MyLineListener {
         let course: u64 = from_caps_int(&caps, 9, 0) as u64;
         let speed: u64 = from_caps_int(&caps, 10, 0) as u64; // [kt]
         let altitude: f64 = from_caps_float(&caps, 11, 0_f64); // [ft]
-        let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap();
+        let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap_or(0);
         let addr2 = from_caps(&caps, 13, "0").to_string();
         let vertical_speed: f64 = from_caps_float(&caps, 14, 0_f64); // [fpm]
 
@@ -204,7 +203,7 @@ impl MyLineListener {
         let course: u64 = from_caps_int(&caps, 9, 0) as u64;
         let speed: u64 = from_caps_int(&caps, 10, 0) as u64; // [kt]
         let altitude: f64 = from_caps_float(&caps, 11, 0_f64); // [ft]
-        let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap();
+        let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap_or(0);
         let addr2 = if regex_with_id {from_caps(&caps, 13, "").to_string()} else {"".to_string()};
         let vertical_speed: f64 = if regex_with_fpm {from_caps_float(&caps, 14, 0_f64)} else {0_f64}; // [fpm]
         let angular_speed: f64 = if regex_with_rot {from_caps_float(&caps, 15, 0_f64)} else {0_f64};
