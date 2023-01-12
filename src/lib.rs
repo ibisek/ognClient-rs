@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use lazy_static::lazy_static;
+use log::error;
 use regex::{Regex, Match, Captures};
-use std::io::Result;
 use std::str;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -40,12 +40,13 @@ impl MyLineListener {
     }
 
     //rx_time: HHMMSS
-    fn rx_time_to_utc_ts(rx_time: &str) -> i64 {
-        let hour = rx_time[0..2].parse::<u32>().unwrap();
-        let min = rx_time[2..4].parse::<u32>().unwrap();
-        let sec = rx_time[4..].parse::<u32>().unwrap();
+    fn rx_time_to_utc_ts(rx_time: &str) -> Result<i64, std::num::ParseIntError> {
+        let hour = rx_time[0..2].parse::<u32>()?;
+        let min = rx_time[2..4].parse::<u32>()?;
+        let sec = rx_time[4..].parse::<u32>()?;
 
-        let utc: DateTime<Utc> = Utc::now();
+        // TODO FIX somehow: here originate 'TS from the future' when beacon comes with local time originating from -timezones after UTC midnight
+        let utc: DateTime<Utc> = Utc::now();    
         let utc = utc
             .with_hour(hour)
             .unwrap()
@@ -55,7 +56,8 @@ impl MyLineListener {
             .unwrap()
             .with_nanosecond(0)
             .unwrap();
-        utc.timestamp() as i64
+
+        Ok(utc.timestamp() as i64)
     }
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
@@ -110,7 +112,14 @@ impl MyLineListener {
         let addr2 = from_caps(&caps, 13, "0").to_string();
         let vertical_speed: f64 = from_caps_float(&caps, 14, 0_f64); // [fpm]
 
-        let ts = Self::rx_time_to_utc_ts(rx_time); // convert rx_time to UTC ts
+        let ts = match Self::rx_time_to_utc_ts(rx_time) {
+            Ok(val) => val,
+            Err(e) => {
+                error!("Invalid rx_time '{rx_time}': {e}");
+                return None;
+            }
+        };
+
         // convert latitude to number:
         let signum = if lat_letter == "N" { 1.0 } else { -1.0 };
         let pos = lat.find('.').unwrap();   // 5140.77 -> 51 40.77
@@ -209,7 +218,14 @@ impl MyLineListener {
         //     None => 0,
         // };
 
-        let ts = Self::rx_time_to_utc_ts(rx_time); // convert rx_time to UTC ts
+        let ts = match Self::rx_time_to_utc_ts(rx_time) {
+            Ok(val) => val,
+            Err(e) => {
+                error!("Invalid rx_time '{rx_time}': {e}");
+                return None;
+            }
+        };
+
         // convert latitude to number:
         let signum = if lat_letter == "N" { 1.0 } else { -1.0 };
         let pos = lat.find('.').unwrap();   // 5140.77 -> 51 40.77
@@ -290,7 +306,7 @@ pub struct OgnClient {
 }
 
 impl OgnClient {
-    pub fn new(username: &str) -> Result<Self> {
+    pub fn new(username: &str) -> std::io::Result<Self> {
         // let line_listener = MyLineListener::new();
         // let line_listener = RefCell::new(MyLineListener::new());
         let line_listener = Rc::new(RefCell::new(MyLineListener::new()));
