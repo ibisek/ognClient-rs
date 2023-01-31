@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use lazy_static::lazy_static;
 use log::error;
 use regex::{Regex, Match, Captures};
+use std::collections::HashSet;
 use std::str;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -62,14 +63,15 @@ impl MyLineListener {
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
         lazy_static! {
-            static ref SUPPORTED_BEACONS: Vec<String> =
-                vec!["OGN".to_string(), "FLR".to_string(), "ICA".to_string(), "SKY".to_string()];
+            static ref SUPPORTED_BEACONS: HashSet<String> = 
+                vec!["OGN".to_string(), "FLR".to_string(), "ICA".to_string(), "SKY".to_string()]
+                .into_iter().collect();
         }
 
         // println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
-        if !SUPPORTED_BEACONS.contains(&prefix) {
-            // println!("Unsupported beacon: {}", line);
+        if !SUPPORTED_BEACONS.contains(prefix) {
+            println!("Unsupported beacon: {}", line);
             return None;
         }
 
