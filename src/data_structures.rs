@@ -148,7 +148,7 @@ impl fmt::Display for AddressType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, Hash)]
 pub enum AircraftType {
     Undefined,
     Glider,
@@ -159,13 +159,13 @@ pub enum AircraftType {
     HangGlider,
     Paraglider,
     PistonPlane,
-    JetPlane,
-    Unknown,
+    JetPlane,       
+    Unknown,        // 10
     Baloon,
-    Airship,
-    Uav,
+    Airship,        // 12
+    Uav,            // 13
     Reserved,
-    Obstacle,
+    Obstacle,       // 15
 }
 
 impl AircraftType {

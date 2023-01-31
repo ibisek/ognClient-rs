@@ -71,7 +71,7 @@ impl MyLineListener {
         // println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(prefix) {
-            println!("Unsupported beacon: {}", line);
+            // println!("Unsupported beacon: {}", line);
             return None;
         }
 
