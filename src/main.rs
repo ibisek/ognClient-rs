@@ -1,3 +1,4 @@
+use log::warn;
 #[warn(non_snake_case)]
 
 use queues::*;
@@ -45,18 +46,13 @@ impl Observer<AircraftBeacon> for AircraftBeaconListener {
         // println!("beacon: #[{:06}] {}", self.i, beacon.to_json_str());
         // println!("ABL [{:06}]: {} {} {} {:>4}m {:>3}km/h {:>8.4} {:>9.4}", self.i, beacon.ts, beacon.prefix, beacon.addr, beacon.altitude, beacon.speed, beacon.lat, beacon.lon);
 
-        if beacon.addr_type == AddressType::Ogn {
-            self.ogn_q.lock().unwrap().add(beacon).unwrap();
-        } else 
-        if beacon.addr_type == AddressType::Icao {
-            self.icao_q.lock().unwrap().add(beacon).unwrap();
-        } else 
-        if beacon.addr_type == AddressType::Flarm {
-            self.flarm_q.lock().unwrap().add(beacon).unwrap();
-        } else 
-        if beacon.addr_type == AddressType::SafeSky {
-            self.safesky_q.lock().unwrap().add(beacon).unwrap();
-        } 
+        match beacon.addr_type {
+            AddressType::Ogn => _ = self.ogn_q.lock().unwrap().add(beacon).unwrap(),
+            AddressType::Icao => _ = self.icao_q.lock().unwrap().add(beacon).unwrap(),
+            AddressType::Flarm => _ = self.flarm_q.lock().unwrap().add(beacon).unwrap(),
+            AddressType::SafeSky => _ = self.safesky_q.lock().unwrap().add(beacon).unwrap(),
+            _ => _ = self.icao_q.lock().unwrap().add(beacon).unwrap(),  // ICAO worker will be processing unknown types (as they are most likely ICAO)
+        };
 
         if self.time.elapsed().unwrap().as_secs() >= 60 {
             let num_ogn = self.ogn_q.lock().unwrap().size();

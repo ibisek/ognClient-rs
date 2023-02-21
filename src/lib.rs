@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use log::error;
 use regex::{Regex, Match, Captures};
 use std::collections::HashSet;
+use std::path::Prefix;
 use std::str;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -13,7 +14,7 @@ mod configuration;
 mod aprs_server_connection;
 pub mod data_structures;
 
-use crate::configuration::{AIRCRAFT_REGEX1, AIRCRAFT_REGEX2, AIRCRAFT_REGEX3, AIRCRAFT_REGEX4, SKY_REGEX, SERVER_ADDR};
+use crate::configuration::{AIRCRAFT_REGEX1, AIRCRAFT_REGEX2, AIRCRAFT_REGEX3, AIRCRAFT_REGEX4, SKY_REGEX, NEMO_REGEX, SERVER_ADDR};
 use self::aprs_server_connection::AprsServerConnection;
 use self::data_structures::{AddressType, AircraftBeacon, AircraftType, Observer};
 
@@ -69,13 +70,18 @@ impl MyLineListener {
         }
 
         // println!("{} [DEBUG] line: {}", now(), line);
+        let mut beacon = None;
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(prefix) {
-            // println!("Unsupported beacon: {}", line);
-            return None;
+            if line.contains("OGNEMO") {
+                return MyLineListener::parse_nemo_beacon(line);
+
+            } else {
+                // println!("Unsupported beacon: {}", line);
+                return None;
+            }
         }
 
-        let mut beacon = None;
         if prefix == "SKY" {
             beacon = MyLineListener::parse_sky_beacon(line);
         } else {
@@ -154,6 +160,95 @@ impl MyLineListener {
             speed,
             vertical_speed,
             0.0,  // not known from the line 
+            stealth,
+            do_not_track,
+            aircraft_type,
+        );
+
+        Some(beacon)
+    }
+
+    /**
+     * OGNEMO beacons usually contain ICA beacons.
+     */
+    fn parse_nemo_beacon(line: &str) -> Option<AircraftBeacon> {
+        lazy_static! {
+            static ref NEMO_RE: Regex = Regex::new(NEMO_REGEX).unwrap();
+        }
+
+        let caps = match NEMO_RE.captures(line) {
+            Some(caps) => caps,
+            None => {
+                // println!("[INFO] NEMO rejected line: {}", line);
+                return None
+            }
+        };
+
+        // let registration = from_caps(&caps, 1, "OK-0000");
+        let rx_time = from_caps(&caps, 2, "000000");
+        let lat = from_caps(&caps, 3, "0");
+        let lat_letter = from_caps(&caps, 4, "N");
+        let lon = from_caps(&caps, 5, "0");
+        let lon_letter = from_caps(&caps, 6, "E");
+        // let aprs_symbol = from_caps(&caps, 7, "");
+        let course: u64 = from_caps_int(&caps, 8, 0) as u64;
+        let speed: u64 = from_caps_int(&caps, 9, 0) as u64; // [kt]
+        let altitude: f64 = from_caps_float(&caps, 10, 0_f64); // [ft]
+        let flags: u8 = u8::from_str_radix(from_caps(&caps, 11, "0"), 16).unwrap_or(0);
+        let addr2 = from_caps(&caps, 12, "0").to_string();
+        let vertical_speed: f64 = from_caps_float(&caps, 13, 0_f64); // [fpm]
+        let angular_speed: f64 = from_caps_float(&caps, 14, 0_f64);
+
+        let ts = match Self::rx_time_to_utc_ts(rx_time) {
+            Ok(val) => val,
+            Err(e) => {
+                error!("Invalid rx_time '{rx_time}': {e}");
+                return None;
+            }
+        };
+
+        // convert latitude to number:
+        let signum = if lat_letter == "N" { 1.0 } else { -1.0 };
+        let pos = lat.find('.').unwrap();   // 5140.77 -> 51 40.77
+        let lat = signum * lat[0..(pos-2)].parse::<f64>().unwrap() + lat[(pos-2)..].parse::<f64>().unwrap() / 60.0;
+        // convert longitude to number:
+        let signum = if lon_letter == "E" { 1.0 } else { -1.0 };
+        let pos = lon.find('.').unwrap();   // 12345.67 -> 123 45.67
+        let lon = signum * lon[0..(pos-2)].parse::<f64>().unwrap() + lon[(pos-2)..].parse::<f64>().unwrap() / 60.0;
+
+        let speed = (speed as f64 * 1.852).round() as u32; // [kt] -> [km/h]
+        // parse flags & aircraft type  STxxxxaa
+        let stealth: bool = if flags & 0b1000_0000 > 0 { true } else { false };
+        let do_not_track: bool = if flags & 0b0100_0000 > 0 { true } else { false };
+        let aircraft_type: AircraftType = AircraftType::from(flags >> 2 & 0x0F);
+        let address_type: AddressType = AddressType::from(flags & 0b0000_0011);
+
+        let prefix;
+        match address_type {
+            AddressType::Icao => prefix = "ICA".to_string(),
+            AddressType::Ogn => prefix = "OGN".to_string(),
+            AddressType::Flarm => prefix = "FLR".to_string(),
+            AddressType::SafeSky => prefix = "SKY".to_string(),
+            _ => prefix = "NEMO".to_string()
+        };
+
+        let vertical_speed = vertical_speed * 0.00508; // ft per min -> meters/s
+        // convert altitude in FL to meters:
+        let altitude = (altitude * 0.3048).round() as i32;
+
+        let beacon = AircraftBeacon::new(
+            ts,
+            prefix,
+            addr2,
+            address_type,
+            lat,
+            lon,
+            altitude,
+            0,
+            course,
+            speed,
+            vertical_speed,
+            angular_speed, 
             stealth,
             do_not_track,
             aircraft_type,
@@ -241,7 +336,17 @@ impl MyLineListener {
         let stealth: bool = if flags & 0b1000_0000 > 0 { true } else { false };
         let do_not_track: bool = if flags & 0b0100_0000 > 0 { true } else { false };
         let aircraft_type: AircraftType = AircraftType::from(flags >> 2 & 0x0F);
-        let address_type: AddressType = AddressType::from(flags & 0b0000_0011);
+        let mut address_type: AddressType = AddressType::from(flags & 0b0000_0011);
+
+        if address_type == AddressType::Unknown {
+            match prefix.as_ref() {
+                "OGN" => address_type = AddressType::Ogn,
+                "ICA" => address_type = AddressType::Icao,
+                "FLR" => address_type = AddressType::Flarm,
+                "SKY" => address_type = AddressType::SafeSky,
+                _ => (),
+            }
+        }
 
         let vertical_speed = vertical_speed * 0.00508; // ft per min -> meters/s
         // convert altitude in FL to meters:
