@@ -3,7 +3,7 @@ use std::error::Error;
 use std::{thread, time, time::Duration};
 use std::io::prelude::*;
 use std::io::{Write, BufReader, LineWriter, Result};
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream, ToSocketAddrs};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::SystemTime;
@@ -46,7 +46,8 @@ impl AprsServerConnection {
 
     pub fn connect(&mut self) {
         info!("Connecting.. ");
-        let stream = match TcpStream::connect(self.address.clone()) {
+        let addr = self.address.clone().to_socket_addrs().unwrap().next().unwrap();
+        let stream = match TcpStream::connect_timeout(&addr, Duration::new(10, 0)) {
             Ok(stream) => {
                 info!("Connection success.");
                 // stream.set_nonblocking(true).expect("[ERROR] set_nonblocking call failed");
