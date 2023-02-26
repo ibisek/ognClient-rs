@@ -70,7 +70,6 @@ impl MyLineListener {
         }
 
         // println!("{} [DEBUG] line: {}", now(), line);
-        let mut beacon = None;
         let prefix = &line[0..3].to_string();
         if !SUPPORTED_BEACONS.contains(prefix) {
             if line.contains("OGNEMO") {
@@ -82,6 +81,7 @@ impl MyLineListener {
             }
         }
 
+        let beacon;
         if prefix == "SKY" {
             beacon = MyLineListener::parse_sky_beacon(line);
         } else {
@@ -163,6 +163,7 @@ impl MyLineListener {
             stealth,
             do_not_track,
             aircraft_type,
+            "".to_string(),
         );
 
         Some(beacon)
@@ -184,7 +185,7 @@ impl MyLineListener {
             }
         };
 
-        // let registration = from_caps(&caps, 1, "OK-0000");
+        let registration = from_caps(&caps, 1, "").to_string();
         let rx_time = from_caps(&caps, 2, "000000");
         let lat = from_caps(&caps, 3, "0");
         let lat_letter = from_caps(&caps, 4, "N");
@@ -252,6 +253,7 @@ impl MyLineListener {
             stealth,
             do_not_track,
             aircraft_type,
+            registration,
         );
 
         Some(beacon)
@@ -260,22 +262,22 @@ impl MyLineListener {
     fn parse_aircraft_beacon(&self, line: &str) -> Option<AircraftBeacon> {
         // there are two very similar lines where one does not contain the 'rot' part:
         let mut regex = &self.aircraft_re4;
-        let mut regex_with_id = false;
+        // let mut regex_with_id = false;
         let mut regex_with_fpm = false;
         let mut regex_with_rot = false;
         if line.contains("rot") { 
             regex = &self.aircraft_re1;
             regex_with_rot = true;
             regex_with_fpm = true;
-            regex_with_id = true;
+            // regex_with_id = true;
 
         } else if line.contains("fpm") {
             regex = &self.aircraft_re2;
             regex_with_fpm = true;
-            regex_with_id = true;
+            // regex_with_id = true;
         } else if line.contains("id") {
             regex = &self.aircraft_re3;
-            regex_with_id = true;
+            // regex_with_id = true;
          }
 
         let caps = match regex.captures(line) {
@@ -301,7 +303,7 @@ impl MyLineListener {
         let speed: u64 = from_caps_int(&caps, 10, 0) as u64; // [kt]
         let altitude: f64 = from_caps_float(&caps, 11, 0_f64); // [ft]
         let flags: u8 = u8::from_str_radix(from_caps(&caps, 12, "0"), 16).unwrap_or(0);
-        let addr2 = if regex_with_id {from_caps(&caps, 13, "").to_string()} else {"".to_string()};
+        // let addr2 = if regex_with_id {from_caps(&caps, 13, "").to_string()} else {"".to_string()};
         let vertical_speed: f64 = if regex_with_fpm {from_caps_float(&caps, 14, 0_f64)} else {0_f64}; // [fpm]
         let angular_speed: f64 = if regex_with_rot {from_caps_float(&caps, 15, 0_f64)} else {0_f64};
         // let flight_level: f64 = from_caps_float(&caps, 16, 0_f64);     // [flight level ~ hundrets of ft]
@@ -368,6 +370,7 @@ impl MyLineListener {
             stealth,
             do_not_track,
             aircraft_type,
+            "".to_string(),
         );
 
         Some(beacon)

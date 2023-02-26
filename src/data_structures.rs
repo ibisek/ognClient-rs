@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use regex::RegexBuilder;
 // use serde::{Serialize, Deserialize};
 // use serde_json;
 use serde_json::json;
@@ -25,19 +26,22 @@ pub struct AircraftBeacon {
     pub stealth: bool,
     pub do_not_track: bool, 
     pub aircraft_type: AircraftType,
+    pub registration: String,   // OGNEMO beacons carry the aircraft registration
 }
 
 impl AircraftBeacon {
     pub fn new( ts: i64, prefix: String, addr: String, addr_type: AddressType,
         lat: f64, lon: f64, altitude: i32, agl: i32,
         course:u64, speed:u32, climb_rate: f64, turn_rate: f64, 
-        stealth: bool, do_not_track: bool, aircraft_type: AircraftType) -> Self {
+        stealth: bool, do_not_track: bool, aircraft_type: AircraftType,
+        registration: String) -> Self {
 
-        Self {ts, prefix, addr, addr_type, lat, lon, altitude, agl, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type}
+        Self {ts, prefix, addr, addr_type, lat, lon, altitude, agl, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type, registration}
     }
 
     pub fn to_json_str(&self) -> String {
         // let serialized = serde_json::to_string(self).unwrap();
+        
         let js = json!({
             "ts": self.ts,
             "prefix": self.prefix,
@@ -54,6 +58,7 @@ impl AircraftBeacon {
             "stealth": self.stealth,
             "dnt": self.do_not_track,
             "acft_type": self.aircraft_type.value(),
+            "registration": self.registration,
         });
         
         js.to_string()
