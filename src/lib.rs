@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 use lazy_static::lazy_static;
-use log::error;
+use log::{warn, error};
 use regex::{Regex, Match, Captures};
 use std::collections::HashSet;
 use std::path::Prefix;
@@ -69,8 +69,15 @@ impl MyLineListener {
                 .into_iter().collect();
         }
 
+
+        if &line.len() < &3 {
+            warn!("Mangled beacon? '{}'", &line);
+            return None;    // must be some mangled beacon
+        }
+
         // println!("{} [DEBUG] line: {}", now(), line);
         let prefix = &line[0..3].to_string();
+
         if !SUPPORTED_BEACONS.contains(prefix) {
             if line.contains("OGNEMO") {
                 return MyLineListener::parse_nemo_beacon(line);
