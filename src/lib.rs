@@ -42,24 +42,38 @@ impl MyLineListener {
     }
 
     //rx_time: HHMMSS
-    fn rx_time_to_utc_ts(rx_time: &str) -> Result<i64, std::num::ParseIntError> {
+    fn rx_time_to_utc_ts(rx_time: &str) -> Result<Option<i64>, std::num::ParseIntError> {
+
         let hour = rx_time[0..2].parse::<u32>()?;
         let min = rx_time[2..4].parse::<u32>()?;
         let sec = rx_time[4..].parse::<u32>()?;
 
         // TODO FIX somehow: here originate 'TS from the future' when beacon comes with local time originating from -timezones after UTC midnight
-        let utc: DateTime<Utc> = Utc::now();    
-        let utc = utc
-            .with_hour(hour)
-            .unwrap()
-            .with_minute(min)
-            .unwrap()
-            .with_second(sec)
-            .unwrap()
-            .with_nanosecond(0)
-            .unwrap();
+        // let utc: DateTime<Utc> = Utc::now();    
+        // let utc = utc.with_hour(hour)
+        //     .unwrap()
+        //     .with_minute(min)
+        //     .unwrap()
+        //     .with_second(sec)
+        //     .unwrap()
+        //     .with_nanosecond(0)
+        //     .unwrap();
+        let mut utc: DateTime<Utc> = Utc::now();  
+        match utc.with_hour(hour) {
+            Some(val) => utc = val,
+            None => return Ok(None),
+        };
+        match utc.with_minute(min) {
+            Some(val) => utc = val,
+            None => return Ok(None),
+        };
+        match utc.with_second(sec) {
+            Some(val) => utc = val,
+            None => return Ok(None),
+        };
+        utc = utc.with_nanosecond(0).unwrap();
 
-        Ok(utc.timestamp() as i64)
+        Ok(Some(utc.timestamp() as i64))
     }
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
@@ -127,7 +141,10 @@ impl MyLineListener {
         let vertical_speed: f64 = from_caps_float(&caps, 14, 0_f64); // [fpm]
 
         let ts = match Self::rx_time_to_utc_ts(rx_time) {
-            Ok(val) => val,
+            Ok(val) => match val {
+                Some(val) => val,
+                None => return None,
+            },
             Err(e) => {
                 error!("Invalid rx_time '{rx_time}': {e}");
                 return None;
@@ -208,7 +225,10 @@ impl MyLineListener {
         let angular_speed: f64 = from_caps_float(&caps, 14, 0_f64);
 
         let ts = match Self::rx_time_to_utc_ts(rx_time) {
-            Ok(val) => val,
+            Ok(val) => match val {
+                Some(val) => val,
+                None => return None,
+            },
             Err(e) => {
                 error!("Invalid rx_time '{rx_time}': {e}");
                 return None;
@@ -324,7 +344,10 @@ impl MyLineListener {
         // };
 
         let ts = match Self::rx_time_to_utc_ts(rx_time) {
-            Ok(val) => val,
+            Ok(val) => match val {
+                Some(val) => val,
+                None => return None,
+            },
             Err(e) => {
                 error!("Invalid rx_time '{rx_time}': {e}");
                 return None;
