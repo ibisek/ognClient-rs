@@ -27,6 +27,7 @@ pub struct AircraftBeacon {
     pub do_not_track: bool, 
     pub aircraft_type: AircraftType,
     pub registration: String,   // OGNEMO beacons carry the aircraft registration
+    pub signal_strength: f64,   // [dB]
 }
 
 impl AircraftBeacon {
@@ -34,9 +35,9 @@ impl AircraftBeacon {
         lat: f64, lon: f64, altitude: i32, agl: i32,
         course:u64, speed:u32, climb_rate: f64, turn_rate: f64, 
         stealth: bool, do_not_track: bool, aircraft_type: AircraftType,
-        registration: String) -> Self {
+        registration: String, signal_strength: f64) -> Self {
 
-        Self {ts, prefix, addr, addr_type, lat, lon, altitude, agl, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type, registration}
+        Self {ts, prefix, addr, addr_type, lat, lon, altitude, agl, course, speed, climb_rate, turn_rate, stealth, do_not_track, aircraft_type, registration, signal_strength}
     }
 
     pub fn to_json_str(&self) -> String {

@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use log::{warn, error};
 use regex::{Regex, Match, Captures};
 use std::collections::HashSet;
+use std::ops::Index;
 use std::path::Prefix;
 use std::str;
 use std::cell::RefCell;
@@ -74,6 +75,19 @@ impl MyLineListener {
         utc = utc.with_nanosecond(0).unwrap();
 
         Ok(Some(utc.timestamp() as i64))
+    }
+
+    fn parse_signal_strength(line: &str) -> f64 {
+        if !line.contains("dB") {
+            return -1_f64;
+        }
+
+        let temp = &line[..line.find("dB").unwrap()];
+        let temp = &temp[temp.rfind(" ").unwrap()+1..];
+
+        let signal_strength = temp.parse::<f64>().unwrap_or(-1_f64);
+
+        signal_strength
     }
 
     pub fn parse_beacon_line(&self, line: &str) -> Option<AircraftBeacon> {
@@ -188,6 +202,7 @@ impl MyLineListener {
             do_not_track,
             aircraft_type,
             "".to_string(),
+            Self::parse_signal_strength(&line),
         );
 
         Some(beacon)
@@ -281,6 +296,7 @@ impl MyLineListener {
             do_not_track,
             aircraft_type,
             registration,
+            Self::parse_signal_strength(&line),
         );
 
         Some(beacon)
@@ -401,6 +417,7 @@ impl MyLineListener {
             do_not_track,
             aircraft_type,
             "".to_string(),
+            Self::parse_signal_strength(&line),
         );
 
         Some(beacon)
