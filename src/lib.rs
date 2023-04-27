@@ -79,13 +79,13 @@ impl MyLineListener {
 
     fn parse_signal_strength(line: &str) -> f64 {
         if !line.contains("dB") {
-            return -1_f64;
+            return 0_f64;
         }
 
         let temp = &line[..line.find("dB").unwrap()];
         let temp = &temp[temp.rfind(" ").unwrap()+1..];
 
-        let signal_strength = temp.parse::<f64>().unwrap_or(-1_f64);
+        let signal_strength = temp.parse::<f64>().unwrap_or(0_f64);
 
         signal_strength
     }
