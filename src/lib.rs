@@ -82,7 +82,7 @@ impl MyLineListener {
             return 0_f64;
         }
 
-        let temp = &line[..line.find("dB").unwrap()];
+        let temp = &line[..line.rfind("dB").unwrap()];
         let temp = &temp[temp.rfind(" ").unwrap()+1..];
 
         let signal_strength = temp.parse::<f64>().unwrap_or(0_f64);
