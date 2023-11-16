@@ -372,13 +372,22 @@ impl MyLineListener {
 
         // convert latitude to number:
         let signum = if lat_letter == "N" { 1.0 } else { -1.0 };
-        let pos = lat.find('.').unwrap();   // 5140.77 -> 51 40.77
-        let lat = signum * lat[0..(pos-2)].parse::<f64>().unwrap() + lat[(pos-2)..].parse::<f64>().unwrap() / 60.0;
+        let lat = match lat.find('.') { // 5140.77 -> 51 40.77
+            Some(pos) => signum * lat[0..(pos-2)].parse::<f64>().unwrap() + lat[(pos-2)..].parse::<f64>().unwrap() / 60.0,
+            None => 0_f64,
+        };
+
         // convert longitude to number:
         let signum = if lon_letter == "E" { 1.0 } else { -1.0 };
-        let pos = lon.find('.').unwrap();   // 12345.67 -> 123 45.67
-        let lon = signum * lon[0..(pos-2)].parse::<f64>().unwrap() + lon[(pos-2)..].parse::<f64>().unwrap() / 60.0;
+        let lon = match lon.find('.') { // 12345.67 -> 123 45.67
+            Some(pos) => signum * lon[0..(pos-2)].parse::<f64>().unwrap() + lon[(pos-2)..].parse::<f64>().unwrap() / 60.0,
+            None => 0_f64,
+        };
 
+        if lat == 0_f64 || lon == 0_f64 {   // problem in lat/lon parsing
+            return None;
+        }
+        
         let speed = (speed as f64 * 1.852).round() as u32; // [kt] -> [km/h]
         // parse flags & aircraft type  STxxxxaa
         let stealth: bool = if flags & 0b1000_0000 > 0 { true } else { false };
